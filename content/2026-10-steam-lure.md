@@ -700,25 +700,3 @@ copies.
 | Favicon mmh3 | `1775797633` |
 | JARM | `21d19d00021d21d00042d43d00000091f9827a8676a9d9f27d421962a09b5d` |
 | Electron package name | `steam-login-app` |
-
-## How we did this
-
-- **Images.** Parsed byte by byte, checked for embedded payloads and decoded the QR
-  code. Re-encoded for this page with metadata removed and the QR code pixelated.
-- **Infrastructure.** WHOIS and RDAP, passive DNS, certificate transparency,
-  urlscan.io, VirusTotal and ThreatFox.
-- **Live sites.** Fetched over Tor, read-only (GET and HEAD). We never submitted a
-  form, signed in, registered or ran the sites' scripts.
-- **Malware.** The 16 programs were downloaded into an isolated analysis VM and
-  analysed statically by CORD's research pipeline: disassembly, call graphs, resource
-  and archive extraction, string recovery. Nothing was executed.
-
-### Limits
-
-- We did not see what the fake sign-in box sends, because we did not run its script.
-- Four of the five installers were extracted and compared, not analysed in full. The
-  two September builds hide their URLs in an obfuscated string table that only runs
-  can decode.
-- The 18 fake-cheat droppers were profiled from VirusTotal data, not analysed by us.
-- The casino's backend and deposit wallets were offline or absent from archived pages.
-- How the account owner's PC was first infected is unknown without access to it.

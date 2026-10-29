@@ -80,10 +80,6 @@
 <li><a href="#other">Other</a></li>
 </ul>
 </li>
-<li><a href="#how-we-did-this">How we did this</a><ul>
-<li><a href="#limits">Limits</a></li>
-</ul>
-</li>
 </ul>
 </div>
 </div></aside>
@@ -142,10 +138,6 @@
 <li><a href="#fake-game-cheat-droppers-sha-256">Fake game-cheat droppers (SHA-256)</a></li>
 <li><a href="#lure-images-sha-256">Lure images (SHA-256)</a></li>
 <li><a href="#other">Other</a></li>
-</ul>
-</li>
-<li><a href="#how-we-did-this">How we did this</a><ul>
-<li><a href="#limits">Limits</a></li>
 </ul>
 </li>
 </ul>
@@ -1392,29 +1384,7 @@ copies.</p>
 <td><code>steam-login-app</code></td>
 </tr>
 </tbody>
-</table></div>
-<h2 id="how-we-did-this">How we did this<a class="headerlink" href="#how-we-did-this" title="Permanent link">#</a></h2>
-<ul>
-<li><strong>Images.</strong> Parsed byte by byte, checked for embedded payloads and decoded the QR
-  code. Re-encoded for this page with metadata removed and the QR code pixelated.</li>
-<li><strong>Infrastructure.</strong> WHOIS and RDAP, passive DNS, certificate transparency,
-  urlscan.io, VirusTotal and ThreatFox.</li>
-<li><strong>Live sites.</strong> Fetched over Tor, read-only (GET and HEAD). We never submitted a
-  form, signed in, registered or ran the sites' scripts.</li>
-<li><strong>Malware.</strong> The 16 programs were downloaded into an isolated analysis VM and
-  analysed statically by CORD's research pipeline: disassembly, call graphs, resource
-  and archive extraction, string recovery. Nothing was executed.</li>
-</ul>
-<h3 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">#</a></h3>
-<ul>
-<li>We did not see what the fake sign-in box sends, because we did not run its script.</li>
-<li>Four of the five installers were extracted and compared, not analysed in full. The
-  two September builds hide their URLs in an obfuscated string table that only runs
-  can decode.</li>
-<li>The 18 fake-cheat droppers were profiled from VirusTotal data, not analysed by us.</li>
-<li>The casino's backend and deposit wallets were offline or absent from archived pages.</li>
-<li>How the account owner's PC was first infected is unknown without access to it.</li>
-</ul></article>
+</table></div></article>
 </div>
 </main>
 <footer class="wrap">CORD &middot; Cluster, Optimize, Research, Detection. Defensive threat research on
