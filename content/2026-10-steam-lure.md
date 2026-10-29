@@ -12,9 +12,7 @@ tags: phishing, infostealer, steam, discord, crypto scam
 <div class="card"><div class="k">Domains on the operator's servers</div><div class="v">600+</div></div>
 <div class="card"><div class="k">Fake Steam apps analysed</div><div class="v">16</div></div>
 <div class="card"><div class="k">Fake game-cheat droppers linked</div><div class="v">18</div></div>
-<div class="card"><div class="k">Casino scam domains</div><div class="v">25+</div></div>
-<div class="card"><div class="k">Payloads in the images</div><div class="v">None</div></div>
-</div>
+<div class="card"><div class="k">Casino scam domains</div><div class="v">25+</div></div></div>
 
 ## Summary
 
