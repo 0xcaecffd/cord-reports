@@ -38,9 +38,9 @@ try{var t=localStorage.getItem("cord-theme");if(t)document.documentElement.setAt
 </ul>
 </li>
 <li><a href="#the-malware-fake-steam-apps-and-game-cheats">The malware: fake Steam apps and game cheats</a><ul>
-<li><a href="#fake-steam-windows-webview2-10-builds">Fake Steam windows (WebView2), 10 builds</a></li>
-<li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
-<li><a href="#a-separate-program-that-replaces-steam-3d2b12f8">A separate program that replaces Steam (3d2b12f8)</a></li>
+<li><a href="#webview2-fake-steam-window-f27af032">WebView2 fake Steam window (f27af032)</a></li>
+<li><a href="#nsis-installer-and-electron-app-c8628650">NSIS installer and Electron app (c8628650)</a></li>
+<li><a href="#steam-client-hijacker-3d2b12f8">Steam client hijacker (3d2b12f8)</a></li>
 <li><a href="#fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected</a></li>
 </ul>
 </li>
@@ -99,9 +99,9 @@ try{var t=localStorage.getItem("cord-theme");if(t)document.documentElement.setAt
 </ul>
 </li>
 <li><a href="#the-malware-fake-steam-apps-and-game-cheats">The malware: fake Steam apps and game cheats</a><ul>
-<li><a href="#fake-steam-windows-webview2-10-builds">Fake Steam windows (WebView2), 10 builds</a></li>
-<li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
-<li><a href="#a-separate-program-that-replaces-steam-3d2b12f8">A separate program that replaces Steam (3d2b12f8)</a></li>
+<li><a href="#webview2-fake-steam-window-f27af032">WebView2 fake Steam window (f27af032)</a></li>
+<li><a href="#nsis-installer-and-electron-app-c8628650">NSIS installer and Electron app (c8628650)</a></li>
+<li><a href="#steam-client-hijacker-3d2b12f8">Steam client hijacker (3d2b12f8)</a></li>
 <li><a href="#fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected</a></li>
 </ul>
 </li>
@@ -228,83 +228,272 @@ else's hands right now.</p>
 <h2 id="the-malware-fake-steam-apps-and-game-cheats">The malware: fake Steam apps and game cheats<a class="headerlink" href="#the-malware-fake-steam-apps-and-game-cheats" title="Permanent link">#</a></h2>
 <p>The operator behind these lures runs malware as well as phishing pages. VirusTotal links
 16 Windows programs to its servers, the same infrastructure that hosts the Steam phishing
-pages (<a href="#lane-1-the-steam-phishing-service">Lane 1</a>). We downloaded all of them for static
-analysis and ran none.</p>
-<p>The important thing about these programs is what they are <em>not</em>. They are not
-infostealers. None of them read browser data, cookies, saved passwords or Steam's session
-files from the machine. Each one is a <strong>credential-relay phishing shell</strong>: a window that
-looks exactly like Steam's sign-in dialog, loads the operator's kit from the same servers
-as the QR-code phish, and relays the username, password and Steam Guard code the victim
-types straight to the operator, who signs in to the real Steam. Fifteen of the sixteen are
-relay shells in two forms, a small WebView2 window and a 61 MB Electron installer. The
-sixteenth is different: a program that quietly replaces the real Steam client. They are
-spread through fake game cheats.</p>
-<div class="callout ok">
-<p><strong>Full technical analysis.</strong> CORD's complete static analysis of one representative from
-each family, with every function, evidence item, detection anchor and unknown:</p>
+pages (<a href="#lane-1-the-steam-phishing-service">Lane 1</a>). We downloaded them and ran a
+representative of each family through CORD Research, a static analysis pipeline; nothing
+was executed. A second, deeper static pass then decoded the obfuscated scripts and read
+the bridge and hijacker code line by line. Where it changed CORD's first-pass findings,
+the section says so.</p>
+<p><strong>The key result: none of these programs is an infostealer.</strong> None reads browser data,
+cookies, saved passwords or Steam files from the machine. Each is a <strong>credential-relay
+phishing shell</strong>: a window that looks like Steam's sign-in, loads the operator's kit, and
+relays the username, password and Steam Guard code the victim types. They come in three
+forms, and they are spread through fake game cheats.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sample</th>
+<th>Family</th>
+<th>Builds</th>
+<th>Analysis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f27af032…</code></td>
+<td>WebView2 fake Steam window</td>
+<td>10</td>
+<td><a href="samples/f27af032.html">Full CORD report</a></td>
+</tr>
+<tr>
+<td><code>c8628650…</code></td>
+<td>NSIS installer, Electron app</td>
+<td>5</td>
+<td><a href="samples/c8628650.html">Full CORD report</a></td>
+</tr>
+<tr>
+<td><code>3d2b12f8…</code></td>
+<td>Steam client hijacker</td>
+<td>1</td>
+<td><a href="samples/3d2b12f8.html">Full CORD report</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>Each full report is CORD's complete analysis: every behaviour with its evidence, all
+decoded strings, the static process map, how the code connects, the decompiled C and
+annotated assembly of every function read, and the evidence index.</p>
+<h3 id="webview2-fake-steam-window-f27af032">WebView2 fake Steam window (f27af032)<a class="headerlink" href="#webview2-fake-steam-window-f27af032" title="Permanent link">#</a></h3>
+<p><strong>Verdict:</strong> malicious · credential-relay shell · family not attributed. CORD's first
+pass classed it as a stealer and dropper; the deeper pass corrected both.</p>
+<p>Ten builds named <code>steam.exe</code> or <code>Steam.exe</code>: 1 MB x64, mingw-linked, first submitted
+2026-09-21 to 2026-10-17, flagged by 3 to 40 engines. All ten share the same five bundled
+files; two are one build with two padding bytes patched to change the hash.</p>
+<div class="cards">
+<div class="card"><div class="k">File</div><div class="v">PE32+ · 1.0 MB</div></div>
+<div class="card"><div class="k">Behaviours</div><div class="v">10</div></div>
+<div class="card"><div class="k">Code reached</div><div class="v">28%</div></div>
+<div class="card"><div class="k">Network</div><div class="v">2</div></div>
+<div class="card"><div class="k">Decoded strings</div><div class="v">31</div></div>
+<div class="card"><div class="k">Detection features</div><div class="v">4</div></div>
+<div class="card"><div class="k">Open questions</div><div class="v">7</div></div>
+</div>
+
+<p>Code reached is 692 of 2,508 functions from the entry; most of the rest is the statically
+linked WebView2 and C runtime.</p>
+<h4 id="how-it-runs">How it runs<a class="headerlink" href="#how-it-runs" title="Permanent link">#</a></h4>
+<div class="flow">
+<div>Entry, then a single-instance lock: a second copy waits for the first to exit.</div>
+<div>WinMain writes Microsoft's signed <code>WebView2Loader.dll</code> (RCDATA 300) next to itself and copies itself to <code>C:\Windows\&lt;random&gt;.exe</code>.</div>
+<div>Sets <code>WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS</code> to turn off SmartScreen, Safe Browsing, phishing protection, certificate checks and web security.</div>
+<div>Creates a hidden, frameless, DPI-aware dark window; a 1.5 s timer reveals it and navigates to the kit page.</div>
+<div>Serves the <code>window.steamm</code> bridge to that page until the window closes.</div>
+</div>
+
+<h4 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">#</a></h4>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>ATT&amp;CK</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Writes <code>WebView2Loader.dll</code> from RCDATA 300</td>
+<td>—</td>
+<td>Microsoft-signed runtime; not a second stage (corrected)</td>
+</tr>
+<tr>
+<td>Launches WebView2 with browser security off</td>
+<td>T1562.001</td>
+<td>SmartScreen, Safe Browsing, certificate checks</td>
+</tr>
+<tr>
+<td>Shows a fake Steam sign-in window</td>
+<td>T1056.002</td>
+<td>Frameless, revealed after 1.5 s</td>
+</tr>
+<tr>
+<td>Loads its page from the operator's kit</td>
+<td>T1071.001</td>
+<td>Numbered <code>f1shh[.]at</code> subdomain, <code>/client</code></td>
+</tr>
+<tr>
+<td>Bridges the page to native code</td>
+<td>T1559</td>
+<td><code>window.steamm</code>, eight methods</td>
+</tr>
+<tr>
+<td>Makes arbitrary HTTP requests from the victim's machine</td>
+<td>T1071.001</td>
+<td>WinInet, user agent <code>Steam/1.0</code></td>
+</tr>
+<tr>
+<td>Opens web links</td>
+<td>T1204.001</td>
+<td>http(s) only</td>
+</tr>
+<tr>
+<td>Single-instance lock</td>
+<td>—</td>
+<td>Spin on <code>Sleep(1000)</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="how-the-code-connects">How the code connects<a class="headerlink" href="#how-the-code-connects" title="Permanent link">#</a></h4>
+<p>The UI-thread handler (<code>0x140005a90</code>) receives <code>{id, method, params}</code> messages from the
+page, parses them (<code>0x1400075c0</code>), dispatches, and answers <code>{id, ok, result|error}</code>
+(<code>0x140002900</code>). The eight methods are <code>win.min</code>, <code>win.drag</code>, <code>win.resize</code> and
+<code>win.close</code>; <code>fs.readText</code> (<code>0x1400033d0</code>) and <code>fs.writeText</code> (<code>0x1400038b0</code>), both
+confined to the program's own folder; <code>http.request</code> (<code>0x140004000</code>, WinInet); and
+<code>shell.open</code> (<code>0x140003c10</code>, http(s) only). The navigation to <code>/client</code> is a plain
+Navigate with no parameters.</p>
+<p>The function CORD's first pass called a "system fingerprint" (<code>0x1400094c0</code>) has no
+callers. It is junk padding whose size changes with every build, there to vary the hash.</p>
+<h4 id="what-it-talks-to-and-touches">What it talks to and touches<a class="headerlink" href="#what-it-talks-to-and-touches" title="Permanent link">#</a></h4>
 <ul>
-<li><a href="../2026-10-steam-lure-webview2/index.html">The WebView2 fake Steam app (f27af032)</a></li>
-<li><a href="../2026-10-steam-lure-electron/index.html">The NSIS and Electron fake Steam installer (c8628650)</a></li>
+<li><code>hxxps://8909451279.f1shh[.]at/client</code> in this build; six different numbered <code>f1shh[.]at</code>
+  subdomains across the ten builds.</li>
+<li>Writes <code>WebView2Loader.dll</code> beside itself and a copy of itself under <code>C:\Windows\</code>.</li>
 </ul>
-</div>
-<h3 id="fake-steam-windows-webview2-10-builds">Fake Steam windows (WebView2), 10 builds<a class="headerlink" href="#fake-steam-windows-webview2-10-builds" title="Permanent link">#</a></h3>
-<p>Ten are 1 MB 64-bit programs, nearly all named <code>steam.exe</code> or <code>Steam.exe</code>. When they run
-they copy themselves under random names such as <code>C:\Windows\q3e342g.exe</code>. One used the
-real Steam install path. They share the same five bundled files, so they come from one
-builder, and two of them are a single build with two padding bytes patched to change the
-hash. They were first submitted to VirusTotal between 2026-09-21 and 2026-10-17, with 3 to
-40 engines flagging them.</p>
-<p>We analysed a representative (<code>f27af032…</code>, 40 detections) in depth. What it does:</p>
-<div class="flow">
-<div>Takes a single-instance lock, so a second copy waits for the first to exit.</div>
-<div>Writes Microsoft's own <code>WebView2Loader.dll</code>, carried as a 164 KB resource (RCDATA 300), to disk. The DLL is genuine and signed by Microsoft. It is there so the fake window works on any machine.</div>
-<div>Launches Edge WebView2 with its security turned off: SmartScreen, Safe Browsing, phishing protection, certificate checks and same-origin protection are all disabled through <code>WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS</code>.</div>
-<div>Opens a frameless, dark, DPI-aware window styled like a Steam sign-in. It stays hidden for 1.5 seconds, then appears in front.</div>
-<div>Loads its page from <code>hxxps://8909451279.f1shh[.]at/client</code>, the same phishing host we fetched, and gives it a <code>window.steamm</code> bridge to native code.</div>
-</div>
-
-<p>The bridge has eight methods, and they are narrow. Four control the window (minimise,
-drag, resize, close). Two read and write text files, but only inside the program's own
-folder, not across the machine. One opens http(s) URLs. One makes arbitrary web requests
-from the victim's machine (a plain HTTP client with the user agent <code>Steam/1.0</code>). There is
-no file-stealing, no browser-data access and no token theft. The machine "fingerprint"
-function an earlier automated pass reported does not exist as described: it is unreferenced
-junk code whose size changes in every build, there only to vary the file hash.</p>
-<p>So the program is a shell. It holds no stealing logic of its own. The fake Steam sign-in
-comes from the operator's server, and what the victim types into it is relayed back
-there. Treat any Steam password or Steam Guard code entered into one of these windows as
-captured.</p>
-<div class="callout">
-<p><strong>Corrections to earlier automated analysis.</strong> The RCDATA 300 resource is Microsoft's
-signed <code>WebView2Loader.dll</code> (0 detections), not a malicious second stage. The Electron
-window runs with Node integration <strong>off</strong>, not on. The file bridge is confined to the
-program's own folder, not the whole machine. And the "system fingerprint" function is
-junk padding, not a real routine. These came from a first automated pass and are corrected
-here by a full static re-analysis.</p>
-</div>
-<h3 id="fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples<a class="headerlink" href="#fake-steam-installers-nsis-and-electron-5-samples" title="Permanent link">#</a></h3>
-<p>Five 61 MB files are NSIS 3 installers, with 0 to 2 detections. They are built in
-three layers:</p>
-<div class="flow">
-<div><strong>NSIS installer.</strong> Stock NSIS code. Its version info and icon pose as Valve. It unpacks a 63 MB 7-zip archive and starts the payload with no window (<code>CREATE_NO_WINDOW</code>).</div>
-<div><strong>Electron app.</strong> A renamed Chromium/Electron runtime with an <code>app.asar</code>. Its <code>package.json</code> says <code>"name": "steam-login-app"</code> and author "Valve Corporation". The 44-byte <code>main.js</code> just loads <code>main.jsc</code> through bytenode.</div>
-<div><strong>Electron app.</strong> The <code>main.js</code> opens a <code>BrowserWindow</code> with Node integration and context isolation both <strong>off</strong>, loads the operator's fake Steam page, clears the window's storage, spoofs a Chrome 122 user agent, and injects CSS and a 52 KB script that dresses the page as Steam and auto-clicks its sign-in button. It tries three operator hosts in turn: <code>hxxps://njrlmwtgpk[.]shop/2123223</code>, <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
+<h4 id="notable-strings">Notable strings<a class="headerlink" href="#notable-strings" title="Permanent link">#</a></h4>
+<p><code>window.steamm</code>, <code>__steammHooked</code>, <code>SteamWindow</code>, <code>Steam/1.0</code>,
+<code>WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS</code>, <code>--disable-client-side-phishing-detection</code>,
+<code>only http(s) allowed</code>, <code>unknown method:</code>.</p>
+<h4 id="verdict-and-detection-opportunities">Verdict and detection opportunities<a class="headerlink" href="#verdict-and-detection-opportunities" title="Permanent link">#</a></h4>
+<p>YARA rules <code>steamlure_wv2_bridge_app</code> (bridge and browser-argument strings) and
+<code>steamlure_wv2_c2_url</code> (the embedded <code>f1shh</code> <code>/client</code> URL); see
+<a href="#yara">Detection</a>. Of CORD's anchors, the entry stub (A1) and the WinInet client (A3)
+hold. Do not use anchor A4: it rests on the junk function.</p>
+<h4 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">#</a></h4>
+<p>The kit page's JavaScript is served at run time, so what it does inside this window is
+known from the copy embedded in the hijacker below, not from this sample.</p>
+<p><a href="samples/f27af032.html">Read the full CORD report for f27af032 →</a></p>
+<h3 id="nsis-installer-and-electron-app-c8628650">NSIS installer and Electron app (c8628650)<a class="headerlink" href="#nsis-installer-and-electron-app-c8628650" title="Permanent link">#</a></h3>
+<p><strong>Verdict:</strong> malicious · credential-relay shell (the Electron payload) · family not
+attributed. CORD's first pass classed the payload as a stealer with browser-storage
+access and Node integration on; the deeper pass corrected both.</p>
+<p>Five builds, about 61 MB each, flagged by 0 to 2 engines.</p>
+<div class="cards">
+<div class="card"><div class="k">File</div><div class="v">PE32 · 61 MB</div></div>
+<div class="card"><div class="k">Layers</div><div class="v">3</div></div>
+<div class="card"><div class="k">Behaviours</div><div class="v">21</div></div>
+<div class="card"><div class="k">Code reached</div><div class="v">78%</div></div>
+<div class="card"><div class="k">Network</div><div class="v">3</div></div>
+<div class="card"><div class="k">Detection features</div><div class="v">7</div></div>
+<div class="card"><div class="k">Open questions</div><div class="v">5</div></div>
 </div>
 
-<p>We decoded the September builds' obfuscated JavaScript in full (by rebuilding its string
-decoder, not by running it). It confirms the relay design: no code reads files, browser
-data or tokens from the machine. The declared <code>ANTI_DELETE</code> and <code>PROCESS_PROTECTION</code>
-options are inert in these builds (<code>PROCESS_PROTECTION</code>, when on, only renames the process
-to <code>svchost.exe</code>), and <code>WATCHER_SCRIPT</code> is empty. The injected script carries Steam's
-Russian-language UI strings, so the operator's relay browser runs in Russian.</p>
-<p>This is the same idea as the WebView2 programs, rebuilt on Electron: a convincing Steam
-window that the victim signs in to. The two main hosts serve the platform's
-Russian-language Steam page, built to fill an Electron window (a CSS comment reads "фон
-как в Electron", "background as in Electron").</p>
-<p>All five installers carry the same <code>package.json</code> (version <code>10.50.87.67</code>). The October
-builds are the same program compiled to V8 bytecode (bytenode), which hides the source
-from scanners and fits their 0-to-2 detection rate; the string tables, injected CSS and
-script, and the three target hosts are identical across all five:</p>
+<p>Code reached is 81 of 104 functions of the NSIS stub; the payload logic lives in the
+unpacked layers.</p>
+<h4 id="how-it-runs_1">How it runs<a class="headerlink" href="#how-it-runs_1" title="Permanent link">#</a></h4>
+<div class="flow">
+<div>The stock NSIS 3 stub, with Valve-forged version info and icon, unpacks a 63 MB 7-zip overlay.</div>
+<div>It starts a renamed Electron 25.9.8 runtime with <code>CREATE_NO_WINDOW</code>.</div>
+<div>The app's <code>main.js</code> loads the payload: obfuscated JavaScript in the September builds, V8 bytecode (<code>main.jsc</code>, bytenode) from October.</div>
+<div>The payload opens a <code>BrowserWindow</code> and loads the kit from the first of three hosts that answers.</div>
+<div>It clears the window's storage, spoofs a Chrome 122 user agent, injects CSS and a 52 KB script that dresses the page as Steam, and auto-clicks the sign-in button.</div>
+</div>
+
+<h4 id="layers">Layers<a class="headerlink" href="#layers" title="Permanent link">#</a></h4>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Format</th>
+<th>Size</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>PE32, NSIS 3</td>
+<td>61 MB</td>
+<td>Stock NSIS stub; Valve version info and icon</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>Electron <code>app.asar</code></td>
+<td>202 KB</td>
+<td><code>package.json</code>: <code>steam-login-app</code>, "Valve Corporation", <code>10.50.87.67</code></td>
+</tr>
+<tr>
+<td>L2</td>
+<td>V8 bytecode <code>main.jsc</code></td>
+<td>93 KB</td>
+<td>The relay window (October builds)</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="what-it-does_1">What it does<a class="headerlink" href="#what-it-does_1" title="Permanent link">#</a></h4>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>ATT&amp;CK</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unpacks and launches the payload with no window</td>
+<td>T1204.002</td>
+<td>Stock NSIS code</td>
+</tr>
+<tr>
+<td>Impersonates Valve</td>
+<td>T1036.005</td>
+<td>Version info and <code>package.json</code></td>
+</tr>
+<tr>
+<td>Hides its logic</td>
+<td>T1027</td>
+<td>Obfuscated JS (Sep), bytenode V8 bytecode (Oct)</td>
+</tr>
+<tr>
+<td>Shows a fake Steam sign-in window</td>
+<td>T1056.002</td>
+<td>Node integration <strong>off</strong>, context isolation off</td>
+</tr>
+<tr>
+<td>Dresses the kit page as Steam</td>
+<td>—</td>
+<td>Storage cleared, UA spoofed, CSS and 52 KB script injected</td>
+</tr>
+<tr>
+<td>Relays the typed login to the operator</td>
+<td>T1041</td>
+<td>No disk, browser or token access</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="decoded-strings">Decoded strings<a class="headerlink" href="#decoded-strings" title="Permanent link">#</a></h4>
+<p>The September builds' <code>main.js</code> was decoded in full by reimplementing the obfuscator's
+string table and rotation in Python (the rotation checksum matched, which validates the
+decode); it was never run.</p>
+<ul>
+<li><code>TARGET_URLS</code>: <code>hxxps://njrlmwtgpk[.]shop/2123223</code>, <code>hxxps://fakefake[.]shop/3253523</code>,
+  <code>hxxps://pulse-keys[.]store/6887</code>.</li>
+<li><code>ANTI_DELETE = true</code> but never read. <code>PROCESS_PROTECTION = false</code>; when on it only
+  renames the process to <code>svchost.exe</code>. <code>WATCHER_SCRIPT = ''</code>. A <code>--watcher &lt;file&gt;</code> mode
+  runs a script with <code>ELECTRON_RUN_AS_NODE</code>. There is no persistence or self-protection.</li>
+<li>The injected script carries Steam's Russian-language UI strings, so the operator's relay
+  browser runs in Russian.</li>
+</ul>
+<p>The October <code>main.jsc</code> files are the same program: the same three hosts, the same
+functions and byte-identical injected CSS and script. The engine is Electron 25.9.8 with
+V8 11.4.183.29; "Chrome 122" is only the spoofed user agent.</p>
 <div class="tw"><table>
 <thead>
 <tr>
@@ -317,7 +506,7 @@ script, and the three target hosts are identical across all five:</p>
 <tr>
 <td><code>a0eb8249…</code></td>
 <td>2026-09-19</td>
-<td>Obfuscated JavaScript (<code>main.js</code>, 87 KB)</td>
+<td>Obfuscated <code>main.js</code>, 87 KB</td>
 </tr>
 <tr>
 <td><code>b136e43b…</code></td>
@@ -327,42 +516,130 @@ script, and the three target hosts are identical across all five:</p>
 <tr>
 <td><code>6b3bb3be…</code></td>
 <td>2026-10-03</td>
-<td>V8 bytecode (<code>main.jsc</code>, 124 KB)</td>
+<td>Bytecode <code>main.jsc</code>, 124 KB</td>
 </tr>
 <tr>
 <td><code>64465b46…</code></td>
 <td>2026-10-04</td>
-<td>V8 bytecode</td>
+<td>Bytecode</td>
 </tr>
 <tr>
 <td><code>c8628650…</code></td>
 <td>October</td>
-<td>V8 bytecode (93 KB)</td>
+<td>Bytecode, 93 KB</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="a-separate-program-that-replaces-steam-3d2b12f8">A separate program that replaces Steam (3d2b12f8)<a class="headerlink" href="#a-separate-program-that-replaces-steam-3d2b12f8" title="Permanent link">#</a></h3>
-<p>The sixteenth sample is not a relay shell. It is a persistent hijacker of an already
-installed Steam. It elevates with <code>runas</code>, stops the Steam Client Service, kills the
-running Steam processes, and replaces <code>steam.exe</code> with itself, keeping the original as
-<code>steam.orig.exe</code> or <code>steam.live.exe</code>. It then re-points the <code>steam://</code> handler, the Steam
-App Paths and the Valve registry keys, and re-targets Steam shortcuts and taskbar pins, so
-every way the victim launches Steam runs the hijacker first. It calls
-<code>hxxps://koooolda[.]shop/43413</code> (stored XOR-encoded), a host on the same FEMO IT server as
-the phishing kit.</p>
-<p>This sample is useful beyond itself, because it carries the relay kit's client code in
-plain form, which shows exactly how the whole family talks to the operator. Each action is
-a POST to a path built from the string <code>DyNaM1c</code> plus the action name, then XOR-encrypted
-with the per-visit <code>secret</code> from the affiliate cookie. The actions are:</p>
+<h4 id="what-it-talks-to-and-touches_1">What it talks to and touches<a class="headerlink" href="#what-it-talks-to-and-touches_1" title="Permanent link">#</a></h4>
+<p>The three hosts above; <code>fakefake[.]shop</code> and <code>pulse-keys[.]store</code> serve the platform's
+Russian-language Steam page, built for an Electron window (a CSS comment reads
+"ФОН КАК В ELECTRON", "background as in Electron").</p>
+<h4 id="verdict-and-detection-opportunities_1">Verdict and detection opportunities<a class="headerlink" href="#verdict-and-detection-opportunities_1" title="Permanent link">#</a></h4>
+<p>YARA rules <code>steamlure_electron_package_json</code>, <code>steamlure_electron_mainjs_obfuscated</code>,
+<code>steamlure_electron_mainjsc_bytecode</code> and <code>steamlure_electron_nsis_installer</code>; see
+<a href="#yara">Detection</a>. CORD's strongest anchors are the NSIS, 7-zip, asar and bytenode
+nesting (A5) and the forged <code>package.json</code> (A6).</p>
+<h4 id="open-questions_1">Open questions<a class="headerlink" href="#open-questions_1" title="Permanent link">#</a></h4>
+<p>The October bytecode's control flow needs a V8 11.4 disassembler. The string-level
+comparison already shows it is the same program as the decoded September source.</p>
+<p><a href="samples/c8628650.html">Read the full CORD report for c8628650 →</a></p>
+<h3 id="steam-client-hijacker-3d2b12f8">Steam client hijacker (3d2b12f8)<a class="headerlink" href="#steam-client-hijacker-3d2b12f8" title="Permanent link">#</a></h3>
+<p><strong>Verdict:</strong> malicious · persistent Steam client hijacker that serves the relay kit ·
+family not attributed. CORD's pass classed it as a loader (confidence 0.4) and could not
+decode its URL or resources; the deeper pass recovered both.</p>
+<p>One sample, 849 KB x64, Visual Studio 2019, flagged by 3 engines.</p>
+<div class="cards">
+<div class="card"><div class="k">File</div><div class="v">PE32+ · 849 KB</div></div>
+<div class="card"><div class="k">Behaviours</div><div class="v">12</div></div>
+<div class="card"><div class="k">Code reached</div><div class="v">56%</div></div>
+<div class="card"><div class="k">Decoded strings</div><div class="v">10</div></div>
+<div class="card"><div class="k">Detection features</div><div class="v">5</div></div>
+<div class="card"><div class="k">Open questions</div><div class="v">2</div></div>
+</div>
+
+<p>Code reached is 357 of 632 functions from the entry.</p>
+<h4 id="how-it-runs_2">How it runs<a class="headerlink" href="#how-it-runs_2" title="Permanent link">#</a></h4>
+<div class="flow">
+<div>Checks for elevation; if it is not elevated it relaunches itself with <code>runas</code> and exits.</div>
+<div>Stops the Steam Client Service and closes the running Steam processes.</div>
+<div>Replaces <code>steam.exe</code> with itself, keeping the original as <code>steam.orig.exe</code> or <code>steam.live.exe</code>.</div>
+<div>Writes persistence under HKCU and HKLM, re-points the <code>steam://</code> handler and App Paths, and rewrites Steam shortcuts in six shell folders.</div>
+<div>Shows a 700x500 Steam lure window over WebView2; a timer then downloads from <code>koooolda[.]shop</code>.</div>
+</div>
+
+<h4 id="what-it-does_2">What it does<a class="headerlink" href="#what-it-does_2" title="Permanent link">#</a></h4>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>ATT&amp;CK</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Elevates with <code>runas</code></td>
+<td>T1548.002</td>
+</tr>
+<tr>
+<td>Stops a service and closes processes by name</td>
+<td>T1489</td>
+</tr>
+<tr>
+<td>Replaces <code>steam.exe</code> with itself</td>
+<td>T1554</td>
+</tr>
+<tr>
+<td>Writes registry persistence and re-points the <code>steam://</code> handler</td>
+<td>T1112</td>
+</tr>
+<tr>
+<td>Rewrites Steam shortcuts in six shell folders</td>
+<td>T1547.009</td>
+</tr>
+<tr>
+<td>Shows a Steam sign-in UI to the relay kit</td>
+<td>T1056.002</td>
+</tr>
+<tr>
+<td>Downloads from an XOR-decoded URL</td>
+<td>T1105</td>
+</tr>
+<tr>
+<td>XOR-encodes its strings</td>
+<td>T1027</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="how-the-code-connects_1">How the code connects<a class="headerlink" href="#how-the-code-connects_1" title="Permanent link">#</a></h4>
+<p>WinMain resolves <code>CopyFileW</code> and <code>MoveFileW</code> and calls the installer (<code>0x140007950</code>),
+which checks elevation, stops the service and closes Steam, then replaces the executable
+(<code>0x140007680</code>). Persistence is written at <code>0x140006d70</code>, with the Steam path read at
+<code>0x140006170</code> and <code>0x140005f00</code>. The shortcut hijacker (<code>0x140007270</code>, with an extension
+normaliser at <code>0x140007150</code>) rewrites each matching <code>.lnk</code>. The lure window's WndProc
+(<code>0x140005ae0</code>) sets a timer whose handler calls the downloader (<code>0x140005750</code>).</p>
+<h4 id="decoded-strings_1">Decoded strings<a class="headerlink" href="#decoded-strings_1" title="Permanent link">#</a></h4>
 <ul>
-<li><code>visit</code> — report that a victim opened the window;</li>
-<li><code>doLogin</code> — send the typed username and password;</li>
-<li><code>submitCode</code> — send the Steam Guard code;</li>
-<li><code>checkConfirmations</code> — poll for the mobile approval.</li>
+<li>The download URL, XOR-encoded with <code>0x5a</code>: <code>hxxps://koooolda[.]shop/43413</code>. The host
+  resolves to <code>62[.]60[.]226[.]75</code>, the FEMO IT server that hosts the phishing kit.</li>
+<li>Resource 103 is the relay kit's client script in plain form. Each action is a POST to a
+  path built from <code>DyNaM1c</code> plus the action name, XOR-encrypted with the <code>secret</code> from the
+  affiliate cookie. The actions are <code>visit</code>, <code>doLogin</code> (username and password),
+  <code>submitCode</code> (Steam Guard) and <code>checkConfirmations</code> (mobile approval).</li>
 </ul>
-<p>That is the whole point of the operation in four calls: it collects a Steam login, the
-second factor, and the mobile confirmation, in real time, which is enough to take an
-account protected by Steam Guard.</p>
+<p>That is the operation in four calls: a Steam login, the second factor and the mobile
+confirmation, relayed in real time, which is enough to take an account protected by Steam
+Guard.</p>
+<h4 id="what-it-talks-to-and-touches_2">What it talks to and touches<a class="headerlink" href="#what-it-talks-to-and-touches_2" title="Permanent link">#</a></h4>
+<p><code>koooolda[.]shop</code>; <code>steam.exe</code> and <code>steam.orig.exe</code> or <code>steam.live.exe</code>; the <code>steam://</code>
+handler, Steam App Paths and Valve registry keys; Steam shortcuts on the desktop, in the
+Start menu and in AppData.</p>
+<h4 id="verdict-and-detection-opportunities_2">Verdict and detection opportunities<a class="headerlink" href="#verdict-and-detection-opportunities_2" title="Permanent link">#</a></h4>
+<p>YARA rule <code>steamlure_wv2_steamui_hijacker</code>. On a host, look for <code>steam.orig.exe</code> or
+<code>steam.live.exe</code> and a <code>steam://</code> handler that points outside the Steam install.</p>
+<h4 id="open-questions_2">Open questions<a class="headerlink" href="#open-questions_2" title="Permanent link">#</a></h4>
+<p>Two of CORD's questions remain open: some of the ten RCDATA resources (IDs 103 to 113,
+about 650 KB) beyond the kit script, and the remaining XOR-decoded names.</p>
+<p><a href="samples/3d2b12f8.html">Read the full CORD report for 3d2b12f8 →</a></p>
 <h3 id="fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected<a class="headerlink" href="#fake-game-cheats-how-victims-get-infected" title="Permanent link">#</a></h3>
 <p>VirusTotal shows 18 more programs calling <code>fakefake[.]shop</code>. They are named after game
 cheats, injectors and macro tools, and every one that has a label is flagged as a UAC

@@ -251,21 +251,117 @@ memory-corruption paths. It does not catch the serializer mismatch.
 
 ## The malware: potassium, the second stage
 
-Within hours of the patch, attackers were already using this exact flaw to plant a second-stage bot, the malware that lands once the exploit has opened the door. We obtained the sample, and it turned out to be far more than a run-of-the-mill Mirai knock-off (Mirai being the widely copied botnet code that most Linux DDoS malware descends from).
+Within hours of the patch, attackers were using this flaw to plant a second-stage bot.
+We obtained the sample and ran it through CORD Research, a static analysis pipeline;
+nothing was executed. It is far more than a run-of-the-mill Mirai copy (Mirai being the
+widely copied botnet code most Linux DDoS malware descends from). It is the newest build
+of a family Nokia Deepfield documented in May 2026 as **potassium**, and the binary the
+research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage, seen in the
+wild the day before.
 
-**What it is.** A Linux DDoS bot: software that turns a compromised server into a foot soldier for knocking other sites offline. It does not spread on its own; it is placed onto servers through the PHP2Shell exploit above. It is the newest build of a family that Nokia Deepfield documented in May 2026 under the name **potassium**, and the same binary the research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage, seen in the wild the day before.
+[Read the full CORD report for 0c5486f0 →](samples/0c5486f0.html) It has every behaviour
+with its evidence, all 461 decoded strings, the static process map, how the code
+connects, the decompiled C and annotated assembly of every function read, and the
+evidence index.
 
-**The sample, by the numbers.**
+**Verdict:** malicious · botnet payload · family Mirai (potassium lineage), confidence
+0.55.
+
+<div class="cards">
+<div class="card"><div class="k">File</div><div class="v">ELF64 · 175 KB</div></div>
+<div class="card"><div class="k">Behaviours</div><div class="v">11</div></div>
+<div class="card"><div class="k">Code reached</div><div class="v">87%</div></div>
+<div class="card"><div class="k">Network</div><div class="v">31</div></div>
+<div class="card"><div class="k">Decoded strings</div><div class="v">461</div></div>
+<div class="card"><div class="k">Detection features</div><div class="v">5</div></div>
+<div class="card"><div class="k">Open questions</div><div class="v">6</div></div>
+</div>
+
+Code reached is 475 of 546 functions from the entry. Of the 31 network indicators, 15 are
+command-and-control hosts.
 
 | Field | Value |
 |---|---|
 | SHA-256 | `0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486` |
 | MD5 | `b61a098fc62a2c2696e196dca78da71a` |
-| File | ELF64 x86-64, statically linked, stripped, 179,632 bytes |
-| Detection at discovery | 4 of ~65 engines, heuristic only, effectively invisible |
-| Delivered via | loader fetched from `hxxp://92[.]118[.]112[.]100/nfs`, run as `./nfs php`; loader source `45[.]198[.]224[.]169` |
+| File | ELF64 x86-64, statically linked, stripped, no interpreter, 179,632 bytes |
+| Detection at discovery | 4 of about 65 engines, heuristic only |
+| Delivered via | Loader fetched from `hxxp://92[.]118[.]112[.]100/nfs`, run as `./nfs php`; loader source `45[.]198[.]224[.]169` |
 
-**Why it stands out.** Ordinary Mirai copies leave their settings and tell-tale text in plain sight. This one encrypts everything: a 476-slot string table locked under ChaCha20, with even the cipher's own constant masked. Its link back to the operators uses modern cryptography (X25519 key exchange, ChaCha20-Poly1305). It can open a remote shell for them, hide its own process from the system, and update itself. Most tellingly, it lies about where its control server is (more on that in Act III). And the scanning engine classic Mirai uses to spread on its own has been stripped out, the sign that this build is placed deliberately by a loader rather than spreading like a worm.
+### How it runs
+
+<div class="flow">
+<div>At start-up it decrypts its string store: ChaCha20, key and nonce in <code>.data</code>, with even the cipher's constant masked.</div>
+<div>It takes a single-instance lock on a loopback TCP port (a newer copy takes over) and maps a shared read-only marker page.</div>
+<div>It daemonises, closes stdio and renames itself to a random system-looking name; as root it hides its PID by bind-mounting another process's <code>/proc</code> entry over its own.</div>
+<div>It kills competing processes it finds by walking <code>/proc</code>.</div>
+<div>It connects to its C2 over TCP on a random port from a 14-entry table, with an X25519 handshake and ChaCha20-Poly1305, registers the host, and waits for commands.</div>
+</div>
+
+The scanner classic Mirai uses to spread on its own has been removed: this build is placed
+deliberately by a loader, not spread like a worm.
+
+### What it does
+
+| Behaviour | ATT&CK |
+|---|---|
+| Decrypts a ChaCha20 string store at start-up (461 entries decoded) | T1027 |
+| Single-instance lock on a loopback TCP port; a shared read-only marker page | — |
+| Daemonises and masquerades under a random process name (`prctl`, `argv[0]`) | T1036 |
+| Hides its PID by bind-mounting another process's `/proc` directory (root only) | T1564 |
+| Kills other processes found by walking `/proc`, and its own children on command | T1057 |
+| C2 over TCP, X25519 key exchange, ChaCha20-Poly1305, own DNS fallback | T1095, T1573 |
+| Registers with CPU count, memory, `uname`, effective UID and local address | T1082 |
+| DDoS on command: 24 attack vectors from a static table, each in a forked worker | T1498 |
+| Self-update on command: download, `chmod 0755`, `execve` | T1105 |
+| Discovers the current user and home directory for the shell | T1033 |
+| Remote interactive shell over the C2 (pty, `setsid`, controlling tty) | T1059.004 |
+
+### How the code connects
+
+The string-store decryptor (`FUN_0040dba0` and its helpers) runs first; every later
+behaviour reads its names, hosts and paths from that store. The main routine
+(`FUN_004001d0`) takes the lock, daemonises and enters the C2 loop (`FUN_00411ca1` and
+the session functions around it), which dispatches commands: the attack table and its
+forked workers (`FUN_00400f7d`, `FUN_00400cd7`), self-update (`FUN_0040c42a`,
+`FUN_0040b89c`) and the remote shell (`FUN_0040aa12`, `FUN_0040a948`). PID hiding is
+`FUN_0041479d` and `FUN_00414879`. The full report's "How the code connects" section has
+all 43 call paths, and its "Code" section the decompiled C and assembly of each function.
+
+### What it talks to and touches
+
+- C2 hosts from the string store, slots 0 to 7: `thunder[.]godofthunder[.]st`; plus
+  `hackattackkaboom[.]botlesscucks[.]st` and `hik[.]gettingheadfromduckysmom[.]st`.
+- An Ethereum fallback: ENS names `2sexy4u[.]eth` and `sushiconsumer[.]eth`, read through
+  public RPC endpoints (see [the operator](#a-c2-fallback-on-the-blockchain)).
+- 14 C2 ports, a loopback lock on TCP 1234, `/var/tmp/.cache/sysd`, the watchdog devices,
+  and the 18 public DNS resolvers it carries for its own lookups.
+- The published DNS answers for its C2 hosts are decoys; the real addresses are recovered
+  under [the operator](#the-sleight-of-hand-decoy-dns). The full list is in the
+  [appendix](#appendix-full-indicators).
+
+### Decoded strings
+
+CORD decrypted the ChaCha20 store and decoded 461 entries: C2 hostnames, the ENS names
+and resolver recipe, RPC endpoints, ports, process names (`telnetd`, `udhcpc`, `upnpd`,
+`watchdog`, `syslogd` and others), shell and watchdog paths, and the lineage markers
+`Segmentation fault (core dumped)`, `big brother is watching`, `dvrInside`, `dvrLocker`
+and `im in the matrix`. All 461 are in the full report.
+
+### Verdict and detection opportunities
+
+Malicious botnet payload of the Mirai lineage. CORD proposed five detection features at
+build, family and technique scope; four YARA rules built from them are below under
+[Detecting and blocking the malware](#detecting-and-blocking-the-malware), with no hits on
+clean software.
+
+### Open questions
+
+CORD's six open questions: 23 of 484 string-store sites fail its printable check; where the
+32 bytes behind the C2 peer key live and the exact hash and MAC primitives of the session;
+the shell relay at `0x40a31c` and its message check at `0x40b0b8`; the protocol and packet
+template of each of the 24 attack vectors at `0x62b000`; what the read-only marker page at
+`0x62bdc0` is for; and the reach of 9 user functions and 28 unresolved computed calls.
 
 ### The wider family and our confidence
 

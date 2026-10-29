@@ -47,6 +47,13 @@ try{var t=localStorage.getItem("cord-theme");if(t)document.documentElement.setAt
 </ul>
 </li>
 <li><a href="#the-malware-potassium-the-second-stage">The malware: potassium, the second stage</a><ul>
+<li><a href="#how-it-runs">How it runs</a></li>
+<li><a href="#what-it-does">What it does</a></li>
+<li><a href="#how-the-code-connects">How the code connects</a></li>
+<li><a href="#what-it-talks-to-and-touches">What it talks to and touches</a></li>
+<li><a href="#decoded-strings">Decoded strings</a></li>
+<li><a href="#verdict-and-detection-opportunities">Verdict and detection opportunities</a></li>
+<li><a href="#open-questions">Open questions</a></li>
 <li><a href="#the-wider-family-and-our-confidence">The wider family and our confidence</a></li>
 </ul>
 </li>
@@ -79,6 +86,13 @@ try{var t=localStorage.getItem("cord-theme");if(t)document.documentElement.setAt
 </ul>
 </li>
 <li><a href="#the-malware-potassium-the-second-stage">The malware: potassium, the second stage</a><ul>
+<li><a href="#how-it-runs">How it runs</a></li>
+<li><a href="#what-it-does">What it does</a></li>
+<li><a href="#how-the-code-connects">How the code connects</a></li>
+<li><a href="#what-it-talks-to-and-touches">What it talks to and touches</a></li>
+<li><a href="#decoded-strings">Decoded strings</a></li>
+<li><a href="#verdict-and-detection-opportunities">Verdict and detection opportunities</a></li>
+<li><a href="#open-questions">Open questions</a></li>
 <li><a href="#the-wider-family-and-our-confidence">The wider family and our confidence</a></li>
 </ul>
 </li>
@@ -493,9 +507,31 @@ memory-corruption paths. It does not catch the serializer mismatch.</p>
 </table></div>
 <hr />
 <h2 id="the-malware-potassium-the-second-stage">The malware: potassium, the second stage<a class="headerlink" href="#the-malware-potassium-the-second-stage" title="Permanent link">#</a></h2>
-<p>Within hours of the patch, attackers were already using this exact flaw to plant a second-stage bot, the malware that lands once the exploit has opened the door. We obtained the sample, and it turned out to be far more than a run-of-the-mill Mirai knock-off (Mirai being the widely copied botnet code that most Linux DDoS malware descends from).</p>
-<p><strong>What it is.</strong> A Linux DDoS bot: software that turns a compromised server into a foot soldier for knocking other sites offline. It does not spread on its own; it is placed onto servers through the PHP2Shell exploit above. It is the newest build of a family that Nokia Deepfield documented in May 2026 under the name <strong>potassium</strong>, and the same binary the research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage, seen in the wild the day before.</p>
-<p><strong>The sample, by the numbers.</strong></p>
+<p>Within hours of the patch, attackers were using this flaw to plant a second-stage bot.
+We obtained the sample and ran it through CORD Research, a static analysis pipeline;
+nothing was executed. It is far more than a run-of-the-mill Mirai copy (Mirai being the
+widely copied botnet code most Linux DDoS malware descends from). It is the newest build
+of a family Nokia Deepfield documented in May 2026 as <strong>potassium</strong>, and the binary the
+research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage, seen in the
+wild the day before.</p>
+<p><a href="samples/0c5486f0.html">Read the full CORD report for 0c5486f0 →</a> It has every behaviour
+with its evidence, all 461 decoded strings, the static process map, how the code
+connects, the decompiled C and annotated assembly of every function read, and the
+evidence index.</p>
+<p><strong>Verdict:</strong> malicious · botnet payload · family Mirai (potassium lineage), confidence
+0.55.</p>
+<div class="cards">
+<div class="card"><div class="k">File</div><div class="v">ELF64 · 175 KB</div></div>
+<div class="card"><div class="k">Behaviours</div><div class="v">11</div></div>
+<div class="card"><div class="k">Code reached</div><div class="v">87%</div></div>
+<div class="card"><div class="k">Network</div><div class="v">31</div></div>
+<div class="card"><div class="k">Decoded strings</div><div class="v">461</div></div>
+<div class="card"><div class="k">Detection features</div><div class="v">5</div></div>
+<div class="card"><div class="k">Open questions</div><div class="v">6</div></div>
+</div>
+
+<p>Code reached is 475 of 546 functions from the entry. Of the 31 network indicators, 15 are
+command-and-control hosts.</p>
 <div class="tw"><table>
 <thead>
 <tr>
@@ -514,19 +550,122 @@ memory-corruption paths. It does not catch the serializer mismatch.</p>
 </tr>
 <tr>
 <td>File</td>
-<td>ELF64 x86-64, statically linked, stripped, 179,632 bytes</td>
+<td>ELF64 x86-64, statically linked, stripped, no interpreter, 179,632 bytes</td>
 </tr>
 <tr>
 <td>Detection at discovery</td>
-<td>4 of ~65 engines, heuristic only, effectively invisible</td>
+<td>4 of about 65 engines, heuristic only</td>
 </tr>
 <tr>
 <td>Delivered via</td>
-<td>loader fetched from <code>hxxp://92[.]118[.]112[.]100/nfs</code>, run as <code>./nfs php</code>; loader source <code>45[.]198[.]224[.]169</code></td>
+<td>Loader fetched from <code>hxxp://92[.]118[.]112[.]100/nfs</code>, run as <code>./nfs php</code>; loader source <code>45[.]198[.]224[.]169</code></td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Why it stands out.</strong> Ordinary Mirai copies leave their settings and tell-tale text in plain sight. This one encrypts everything: a 476-slot string table locked under ChaCha20, with even the cipher's own constant masked. Its link back to the operators uses modern cryptography (X25519 key exchange, ChaCha20-Poly1305). It can open a remote shell for them, hide its own process from the system, and update itself. Most tellingly, it lies about where its control server is (more on that in Act III). And the scanning engine classic Mirai uses to spread on its own has been stripped out, the sign that this build is placed deliberately by a loader rather than spreading like a worm.</p>
+<h3 id="how-it-runs">How it runs<a class="headerlink" href="#how-it-runs" title="Permanent link">#</a></h3>
+<div class="flow">
+<div>At start-up it decrypts its string store: ChaCha20, key and nonce in <code>.data</code>, with even the cipher's constant masked.</div>
+<div>It takes a single-instance lock on a loopback TCP port (a newer copy takes over) and maps a shared read-only marker page.</div>
+<div>It daemonises, closes stdio and renames itself to a random system-looking name; as root it hides its PID by bind-mounting another process's <code>/proc</code> entry over its own.</div>
+<div>It kills competing processes it finds by walking <code>/proc</code>.</div>
+<div>It connects to its C2 over TCP on a random port from a 14-entry table, with an X25519 handshake and ChaCha20-Poly1305, registers the host, and waits for commands.</div>
+</div>
+
+<p>The scanner classic Mirai uses to spread on its own has been removed: this build is placed
+deliberately by a loader, not spread like a worm.</p>
+<h3 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>ATT&amp;CK</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decrypts a ChaCha20 string store at start-up (461 entries decoded)</td>
+<td>T1027</td>
+</tr>
+<tr>
+<td>Single-instance lock on a loopback TCP port; a shared read-only marker page</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Daemonises and masquerades under a random process name (<code>prctl</code>, <code>argv[0]</code>)</td>
+<td>T1036</td>
+</tr>
+<tr>
+<td>Hides its PID by bind-mounting another process's <code>/proc</code> directory (root only)</td>
+<td>T1564</td>
+</tr>
+<tr>
+<td>Kills other processes found by walking <code>/proc</code>, and its own children on command</td>
+<td>T1057</td>
+</tr>
+<tr>
+<td>C2 over TCP, X25519 key exchange, ChaCha20-Poly1305, own DNS fallback</td>
+<td>T1095, T1573</td>
+</tr>
+<tr>
+<td>Registers with CPU count, memory, <code>uname</code>, effective UID and local address</td>
+<td>T1082</td>
+</tr>
+<tr>
+<td>DDoS on command: 24 attack vectors from a static table, each in a forked worker</td>
+<td>T1498</td>
+</tr>
+<tr>
+<td>Self-update on command: download, <code>chmod 0755</code>, <code>execve</code></td>
+<td>T1105</td>
+</tr>
+<tr>
+<td>Discovers the current user and home directory for the shell</td>
+<td>T1033</td>
+</tr>
+<tr>
+<td>Remote interactive shell over the C2 (pty, <code>setsid</code>, controlling tty)</td>
+<td>T1059.004</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="how-the-code-connects">How the code connects<a class="headerlink" href="#how-the-code-connects" title="Permanent link">#</a></h3>
+<p>The string-store decryptor (<code>FUN_0040dba0</code> and its helpers) runs first; every later
+behaviour reads its names, hosts and paths from that store. The main routine
+(<code>FUN_004001d0</code>) takes the lock, daemonises and enters the C2 loop (<code>FUN_00411ca1</code> and
+the session functions around it), which dispatches commands: the attack table and its
+forked workers (<code>FUN_00400f7d</code>, <code>FUN_00400cd7</code>), self-update (<code>FUN_0040c42a</code>,
+<code>FUN_0040b89c</code>) and the remote shell (<code>FUN_0040aa12</code>, <code>FUN_0040a948</code>). PID hiding is
+<code>FUN_0041479d</code> and <code>FUN_00414879</code>. The full report's "How the code connects" section has
+all 43 call paths, and its "Code" section the decompiled C and assembly of each function.</p>
+<h3 id="what-it-talks-to-and-touches">What it talks to and touches<a class="headerlink" href="#what-it-talks-to-and-touches" title="Permanent link">#</a></h3>
+<ul>
+<li>C2 hosts from the string store, slots 0 to 7: <code>thunder[.]godofthunder[.]st</code>; plus
+  <code>hackattackkaboom[.]botlesscucks[.]st</code> and <code>hik[.]gettingheadfromduckysmom[.]st</code>.</li>
+<li>An Ethereum fallback: ENS names <code>2sexy4u[.]eth</code> and <code>sushiconsumer[.]eth</code>, read through
+  public RPC endpoints (see <a href="#a-c2-fallback-on-the-blockchain">the operator</a>).</li>
+<li>14 C2 ports, a loopback lock on TCP 1234, <code>/var/tmp/.cache/sysd</code>, the watchdog devices,
+  and the 18 public DNS resolvers it carries for its own lookups.</li>
+<li>The published DNS answers for its C2 hosts are decoys; the real addresses are recovered
+  under <a href="#the-sleight-of-hand-decoy-dns">the operator</a>. The full list is in the
+  <a href="#appendix-full-indicators">appendix</a>.</li>
+</ul>
+<h3 id="decoded-strings">Decoded strings<a class="headerlink" href="#decoded-strings" title="Permanent link">#</a></h3>
+<p>CORD decrypted the ChaCha20 store and decoded 461 entries: C2 hostnames, the ENS names
+and resolver recipe, RPC endpoints, ports, process names (<code>telnetd</code>, <code>udhcpc</code>, <code>upnpd</code>,
+<code>watchdog</code>, <code>syslogd</code> and others), shell and watchdog paths, and the lineage markers
+<code>Segmentation fault (core dumped)</code>, <code>big brother is watching</code>, <code>dvrInside</code>, <code>dvrLocker</code>
+and <code>im in the matrix</code>. All 461 are in the full report.</p>
+<h3 id="verdict-and-detection-opportunities">Verdict and detection opportunities<a class="headerlink" href="#verdict-and-detection-opportunities" title="Permanent link">#</a></h3>
+<p>Malicious botnet payload of the Mirai lineage. CORD proposed five detection features at
+build, family and technique scope; four YARA rules built from them are below under
+<a href="#detecting-and-blocking-the-malware">Detecting and blocking the malware</a>, with no hits on
+clean software.</p>
+<h3 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">#</a></h3>
+<p>CORD's six open questions: 23 of 484 string-store sites fail its printable check; where the
+32 bytes behind the C2 peer key live and the exact hash and MAC primitives of the session;
+the shell relay at <code>0x40a31c</code> and its message check at <code>0x40b0b8</code>; the protocol and packet
+template of each of the 24 attack vectors at <code>0x62b000</code>; what the read-only marker page at
+<code>0x62bdc0</code> is for; and the reach of 9 user functions and 28 unresolved computed calls.</p>
 <h3 id="the-wider-family-and-our-confidence">The wider family and our confidence<a class="headerlink" href="#the-wider-family-and-our-confidence" title="Permanent link">#</a></h3>
 <p>This sample is one build off a production line. We scored every related file in our own collection and ran four detection rules back across a year of global malware submissions. Here is what came back, ranked by how sure we are:</p>
 <ul>
