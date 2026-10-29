@@ -263,6 +263,23 @@ The October `main.jsc` files are the same program: the same three hosts, the sam
 functions and byte-identical injected CSS and script. The engine is Electron 25.9.8 with
 V8 11.4.183.29; "Chrome 122" is only the spoofed user agent.
 
+We disassembled the October bytecode of `c8628650` statically (V8 11.4 Ignition, read as
+data, never run) and it confirms the decoded September logic instruction by instruction.
+The obfuscator writes `false` as `![]`, which compiles to `CreateEmptyArrayLiteral`
+followed by one `ToBooleanLogicalNot`:
+
+- In `createWindow`, `contextIsolation` and `nodeIntegration` are both set that way:
+  **false**. So are `frame`, `resizable`, `fullscreenable` and `show`.
+- At top level, `ANTI_DELETE` is `!![]` (true) and is never read. `PROCESS_PROTECTION` is
+  `![]` (false), and a conditional jump on it skips the `process.title = "svchost.exe"`
+  assignment, so that rename is dead code. `WATCHER_SCRIPT` is an empty string.
+- The only live extra is the `--watcher <file>` branch: if the file exists, it sets
+  `ELECTRON_RUN_AS_NODE=1`, loads the file and quits. Otherwise the program goes straight
+  to the fake Steam window.
+- In the `TARGET_URLS` array, `fakefake[.]shop` and `pulse-keys[.]store` are stored in
+  plain form, and the first slot, `njrlmwtgpk[.]shop`, is filled from the encoded string
+  table at run time.
+
 | Build | First seen | Payload |
 |---|---|---|
 | `a0eb8249…` | 2026-09-19 | Obfuscated `main.js`, 87 KB |
@@ -286,8 +303,9 @@ nesting (A5) and the forged `package.json` (A6).
 
 #### Open questions
 
-The October bytecode's control flow needs a V8 11.4 disassembler. The string-level
-comparison already shows it is the same program as the decoded September source.
+The October control flow is now closed for `c8628650` (above). The two other October
+builds (`64465b46`, `6b3bb3be`) were compared at string and structure level, not
+disassembled; they share the same version hash, functions and object layout.
 
 [Read the full CORD report for c8628650 →](samples/c8628650.html)
 

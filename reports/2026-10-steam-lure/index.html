@@ -494,6 +494,23 @@ decode); it was never run.</p>
 <p>The October <code>main.jsc</code> files are the same program: the same three hosts, the same
 functions and byte-identical injected CSS and script. The engine is Electron 25.9.8 with
 V8 11.4.183.29; "Chrome 122" is only the spoofed user agent.</p>
+<p>We disassembled the October bytecode of <code>c8628650</code> statically (V8 11.4 Ignition, read as
+data, never run) and it confirms the decoded September logic instruction by instruction.
+The obfuscator writes <code>false</code> as <code>![]</code>, which compiles to <code>CreateEmptyArrayLiteral</code>
+followed by one <code>ToBooleanLogicalNot</code>:</p>
+<ul>
+<li>In <code>createWindow</code>, <code>contextIsolation</code> and <code>nodeIntegration</code> are both set that way:
+  <strong>false</strong>. So are <code>frame</code>, <code>resizable</code>, <code>fullscreenable</code> and <code>show</code>.</li>
+<li>At top level, <code>ANTI_DELETE</code> is <code>!![]</code> (true) and is never read. <code>PROCESS_PROTECTION</code> is
+  <code>![]</code> (false), and a conditional jump on it skips the <code>process.title = "svchost.exe"</code>
+  assignment, so that rename is dead code. <code>WATCHER_SCRIPT</code> is an empty string.</li>
+<li>The only live extra is the <code>--watcher &lt;file&gt;</code> branch: if the file exists, it sets
+  <code>ELECTRON_RUN_AS_NODE=1</code>, loads the file and quits. Otherwise the program goes straight
+  to the fake Steam window.</li>
+<li>In the <code>TARGET_URLS</code> array, <code>fakefake[.]shop</code> and <code>pulse-keys[.]store</code> are stored in
+  plain form, and the first slot, <code>njrlmwtgpk[.]shop</code>, is filled from the encoded string
+  table at run time.</li>
+</ul>
 <div class="tw"><table>
 <thead>
 <tr>
@@ -540,8 +557,9 @@ Russian-language Steam page, built for an Electron window (a CSS comment reads
 <a href="#yara">Detection</a>. CORD's strongest anchors are the NSIS, 7-zip, asar and bytenode
 nesting (A5) and the forged <code>package.json</code> (A6).</p>
 <h4 id="open-questions_1">Open questions<a class="headerlink" href="#open-questions_1" title="Permanent link">#</a></h4>
-<p>The October bytecode's control flow needs a V8 11.4 disassembler. The string-level
-comparison already shows it is the same program as the decoded September source.</p>
+<p>The October control flow is now closed for <code>c8628650</code> (above). The two other October
+builds (<code>64465b46</code>, <code>6b3bb3be</code>) were compared at string and structure level, not
+disassembled; they share the same version hash, functions and object layout.</p>
 <p><a href="samples/c8628650.html">Read the full CORD report for c8628650 →</a></p>
 <h3 id="steam-client-hijacker-3d2b12f8">Steam client hijacker (3d2b12f8)<a class="headerlink" href="#steam-client-hijacker-3d2b12f8" title="Permanent link">#</a></h3>
 <p><strong>Verdict:</strong> malicious · persistent Steam client hijacker that serves the relay kit ·
