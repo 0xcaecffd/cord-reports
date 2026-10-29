@@ -20,7 +20,7 @@
 <div class="meta"><span class="pill tlp">TLP:CLEAR</span><span class="pill">phishing</span><span class="pill">infostealer</span><span class="pill">steam</span><span class="pill">discord</span><span class="pill">crypto scam</span></div>
 <h1>Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam</h1>
 <p class="sub">A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.</p>
-<p class="sub small">Published 2026-10-29</p>
+<p class="sub small">Published 2026-10-29 &middot; updated 2026-10-29 (second-stage correction, fake-cheat delivery, infrastructure census)</p>
 </section>
 <div class="cols">
 <aside class="toc"><div class="toc-in"><div class="toc-h">Contents</div><div class="toc">
@@ -40,7 +40,7 @@
 <li><a href="#the-same-platforms-malware">The same platform's malware</a><ul>
 <li><a href="#fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples</a></li>
 <li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
-<li><a href="#how-the-malware-is-probably-delivered">How the malware is probably delivered</a></li>
+<li><a href="#fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected</a></li>
 </ul>
 </li>
 <li><a href="#lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam</a><ul>
@@ -75,6 +75,7 @@
 <li><a href="#urls">URLs</a></li>
 <li><a href="#ip-addresses">IP addresses</a></li>
 <li><a href="#malware-sha-256">Malware (SHA-256)</a></li>
+<li><a href="#fake-game-cheat-droppers-sha-256">Fake game-cheat droppers (SHA-256)</a></li>
 <li><a href="#lure-images-sha-256">Lure images (SHA-256)</a></li>
 <li><a href="#other">Other</a></li>
 </ul>
@@ -103,7 +104,7 @@
 <li><a href="#the-same-platforms-malware">The same platform's malware</a><ul>
 <li><a href="#fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples</a></li>
 <li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
-<li><a href="#how-the-malware-is-probably-delivered">How the malware is probably delivered</a></li>
+<li><a href="#fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected</a></li>
 </ul>
 </li>
 <li><a href="#lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam</a><ul>
@@ -138,6 +139,7 @@
 <li><a href="#urls">URLs</a></li>
 <li><a href="#ip-addresses">IP addresses</a></li>
 <li><a href="#malware-sha-256">Malware (SHA-256)</a></li>
+<li><a href="#fake-game-cheat-droppers-sha-256">Fake game-cheat droppers (SHA-256)</a></li>
 <li><a href="#lure-images-sha-256">Lure images (SHA-256)</a></li>
 <li><a href="#other">Other</a></li>
 </ul>
@@ -151,8 +153,9 @@
 </details>
 <article class="prose"><div class="cards">
 <div class="card"><div class="k">Lure images</div><div class="v">5</div></div>
-<div class="card"><div class="k">Phishing domains tied to the kit</div><div class="v">10+</div></div>
-<div class="card"><div class="k">Malware samples analysed</div><div class="v">16</div></div>
+<div class="card"><div class="k">Domains on the operator's servers</div><div class="v">600+</div></div>
+<div class="card"><div class="k">Fake Steam apps analysed</div><div class="v">16</div></div>
+<div class="card"><div class="k">Fake game-cheat droppers linked</div><div class="v">18</div></div>
 <div class="card"><div class="k">Casino scam domains</div><div class="v">25+</div></div>
 <div class="card"><div class="k">Payloads in the images</div><div class="v">None</div></div>
 </div>
@@ -169,12 +172,12 @@ two separate operations.</p>
    "$100 gift card" with a QR code. The QR code opens a look-alike of
    <code>steamcommunity.com</code> that shows a fake Steam sign-in box. The page is one tenant
    of a phishing-as-a-service platform: each page carries an affiliate ID, and at least
-   two affiliates share the servers. The same servers also act as the command server
-   for at least 16 malicious Windows programs that pose as Steam. Some are small fake
-   Steam windows built on WebView2. Others are 61 MB installers that unpack a fake
-   Steam app built on Electron, which steals credentials and sends them to two further
-   domains. Hosting, language artefacts and a lure upload under a Russian file name
-   point to a Russian-speaking operator.</li>
+   two affiliates share the servers. The same platform runs malware: at least 16
+   Windows programs that pose as Steam (small WebView2 windows, and 61 MB installers
+   that unpack an Electron app), all of which load their fake sign-in pages from the
+   platform's own servers, and at least 18 droppers named after game cheats and
+   injectors. Russian-language pages, hosting and a lure upload under a Russian file
+   name point to a Russian-speaking operator.</li>
 <li><strong>A MrBeast crypto-casino deposit scam (lane 2).</strong> The four Discord images are a
    scripted story: a fake MrBeast post announces a casino bonus, a user activates the
    code, withdraws $3,700, and shows the money arriving in a wallet. The casino domain
@@ -199,11 +202,15 @@ else's hands right now.</p>
 <li>The phishing host <code>8909451279.f1shh[.]at</code> serves a phishing page and is also the
   command server for three of the fake-Steam programs. Phishing and malware run on one
   platform, not merely on shared hosting.</li>
-<li>A 61 MB installer in the same set unpacks an Electron app whose <code>package.json</code>
-  claims to be "steam-login-app" by "Valve Corporation". Its logic is hidden as compiled
-  V8 bytecode (bytenode). It opens target sites in a window with Node access, injects
-  CSS and JavaScript, and uploads what it collects to <code>fakefake[.]shop</code> and
-  <code>pulse-keys[.]store</code>.</li>
+<li>Five 61 MB installers unpack an Electron app whose <code>package.json</code> claims to be
+  "steam-login-app" by "Valve Corporation". Its logic is hidden as compiled V8 bytecode
+  (bytenode) in the October builds. It loads its fake Steam sign-in from
+  <code>fakefake[.]shop</code> and <code>pulse-keys[.]store</code>, which serve the same Russian-language kit
+  as the QR-code phish, now behind Cloudflare.</li>
+<li>The fake-cheat route is real. 18 droppers named after cheat and injector products
+  ("Phantom injector", "Medusa Lite", "Evicted Macros", "Fecurity", "Exlab" and others)
+  call the same <code>fakefake[.]shop</code> server. They appeared in early August 2026, a month
+  before the fake Steam apps.</li>
 <li>The casino lure images reuse a phrase from the casino site itself ("Your Withdrawal
   of $3700.00 Was Successfully!"), so the screenshots came from the real scam kit, not
   a mock-up.</li>
@@ -365,6 +372,36 @@ with the stolen account, and two different IDs appear on the same servers.</p>
 <td>Unknown, likely lures or a panel</td>
 <td>20 subdomains on 192.162.199.140, including <code>account-sso</code>, <code>webmail-login</code>, <code>panel</code>, <code>builder</code>, <code>grafana</code>. None answered when we checked</td>
 </tr>
+<tr>
+<td><code>dojiner[.]at</code></td>
+<td>Malware C2</td>
+<td>A second f1shh-style domain: 40 numbered subdomains, one number shared with <code>f1shh[.]at</code>. 18 of 92 engines. Behind Cloudflare</td>
+</tr>
+<tr>
+<td><code>fakefake[.]shop</code></td>
+<td>Electron fake-Steam page and fake-cheat C2</td>
+<td>Same Russian-language kit and error format. Behind Cloudflare</td>
+</tr>
+<tr>
+<td><code>pulse-keys[.]store</code></td>
+<td>Electron fake-Steam page</td>
+<td>Same kit. Registered 2025-12-25. Behind Cloudflare. Paths seen: <code>/6887</code>, <code>/steamkeys.com</code>, <code>/app/games</code></td>
+</tr>
+<tr>
+<td><code>csfly[.]pro</code>, <code>rustway[.]pro</code>, <code>rustplus[.]store</code></td>
+<td>Game-themed lures (Counter-Strike, Rust)</td>
+<td>On the same servers; <code>csfly</code> and <code>rustway</code> answered on 2026-10-29</td>
+</tr>
+<tr>
+<td><code>drop2[.]run</code>, <code>falcnox[.]pro</code>, <code>orehvpn[.]cc</code>, <code>zenlix[.]space</code></td>
+<td>Co-hosted, game or VPN themed</td>
+<td>On the same servers</td>
+</tr>
+<tr>
+<td><code>steamcomnunltiy[.]com</code>, <code>steemcommunity[.]bet</code>, <code>steamcomnmunity[.]site</code>, <code>stencomnuti[.]com</code></td>
+<td>More Steam typosquats</td>
+<td>On 62.60.226.75</td>
+</tr>
 </tbody>
 </table></div>
 <div class="tw"><table>
@@ -388,6 +425,15 @@ with the stolen account, and two different IDs appear on the same servers.</p>
 </tr>
 </tbody>
 </table></div>
+<p>VirusTotal's passive DNS shows how large this is: 209 domains have resolved to
+<code>62.60.226.75</code> and 400 to <code>192.162.199.140</code>, including at least 108 numbered <code>f1shh[.]at</code>
+subdomains. Most are Steam and game lures. Some subdomain names on
+<code>steamcommunlty[.]site</code> are those of other brands' sign-in pages (<code>11st</code>, <code>gmarket</code>,
+<code>12306</code>, <code>1688</code>, <code>126</code>, <code>entra</code>, <code>caslogin</code>, <code>auth-sso</code>), which suggests the platform
+can phish for more than Steam (medium confidence; we did not see those pages).</p>
+<p>The newer parts of the operation (<code>fakefake[.]shop</code>, <code>pulse-keys[.]store</code>, <code>dojiner[.]at</code>)
+sit behind Cloudflare, while the older lure servers stay exposed on FEMO IT. That looks
+like the operator learning to hide its origin servers.</p>
 <p>AS214351 has been described as bulletproof hosting by Silent Push, Recorded Future and
 Infoblox. VirusTotal also showed <code>steamcomrnuunity[.]com</code> briefly pointing at
 <code>185.53.179.136</code> on 2026-10-15. That address belongs to a domain-parking service
@@ -410,34 +456,95 @@ VirusTotal between 2026-09-21 and 2026-10-17. Detection ranges from 3 to 40 engi
 <p>We analysed a representative (<code>f27af032…</code>, 40 detections) in depth. What it does:</p>
 <div class="flow">
 <div>Takes a single-instance lock, so a second copy waits for the first to exit.</div>
-<div>Writes a second program, carried as a 164 KB resource (RCDATA 300), to disk.</div>
+<div>Writes Microsoft's own <code>WebView2Loader.dll</code>, carried as a 164 KB resource (RCDATA 300), to disk. The DLL is genuine and signed by Microsoft. It is there so the fake window works on any machine.</div>
 <div>Opens a frameless, dark, DPI-aware window built on Microsoft Edge WebView2, styled like a Steam sign-in. It stays hidden for 1.5 seconds, then appears in front.</div>
 <div>Loads its page from <code>hxxps://8909451279.f1shh[.]at/client</code>, the same phishing host we fetched.</div>
 <div>Gives that page a JSON message bridge to native code. Through it the page can read any file by path, write any file, and open URLs or programs.</div>
 <div>Builds a machine fingerprint from the process ID, tick count and locale, mixed with fixed XOR constants, and sends it with its web requests (WinInet, 15 s and 30 s timeouts).</div>
 </div>
 
-<p>The result is a remote-controlled credential trap. The operator's server decides what
-the window shows, and the bridge lets that page read and write files on the machine.
-That covers Steam's local session files as well as browser data. The dropped second
-program was not analysed in this pass.</p>
+<p>The result is a remote-controlled credential trap. The program itself holds no stealing
+logic: the operator's server decides what the window shows, and the bridge lets that
+page read and write files on the machine. That covers Steam's local session files as
+well as browser data, and the operator can change what it takes without shipping a new
+program.</p>
+<div class="callout">
+<p><strong>Correction.</strong> An earlier version of this report called the RCDATA 300 resource an
+unanalysed second-stage program. It is Microsoft's signed <code>WebView2Loader.dll</code>
+(SHA-256 <code>a9a09232…</code>, 0 detections), not malware. Do not block it by hash.</p>
+</div>
 <h3 id="fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples<a class="headerlink" href="#fake-steam-installers-nsis-and-electron-5-samples" title="Permanent link">#</a></h3>
 <p>Five 61 MB files are NSIS 3 installers, with 0 to 2 detections. They are built in
 three layers:</p>
 <div class="flow">
 <div><strong>NSIS installer.</strong> Stock NSIS code. Its version info and icon pose as Valve. It unpacks a 63 MB 7-zip archive and starts the payload with no window (<code>CREATE_NO_WINDOW</code>).</div>
 <div><strong>Electron app.</strong> A renamed Chromium/Electron runtime with an <code>app.asar</code>. Its <code>package.json</code> says <code>"name": "steam-login-app"</code> and author "Valve Corporation". The 44-byte <code>main.js</code> just loads <code>main.jsc</code> through bytenode.</div>
-<div><strong>Compiled payload.</strong> <code>main.jsc</code> is 93 KB of V8 bytecode, which hides the source. Its strings show a <code>BrowserWindow</code> with Node integration on and context isolation off, a <code>TARGET_URLS</code> list, injected CSS and JavaScript in a dark Steam-like theme, browser storage and service-worker access, and two upload endpoints: <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
+<div><strong>Compiled payload.</strong> <code>main.jsc</code> is 93 KB of V8 bytecode, which hides the source. Its strings show a <code>BrowserWindow</code> with Node integration on and context isolation off, a <code>TARGET_URLS</code> list, injected CSS and JavaScript in a dark Steam-like theme, browser storage and service-worker access, and two operator hosts that serve the sign-in page and receive what it collects: <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
 </div>
 
 <p>This is the same idea as the WebView2 programs, rebuilt on Electron: a convincing
-Steam window that the victim signs in to, with full access to the machine behind it.</p>
-<h3 id="how-the-malware-is-probably-delivered">How the malware is probably delivered<a class="headerlink" href="#how-the-malware-is-probably-delivered" title="Permanent link">#</a></h3>
-<p>We did not find the download pages. The evidence points to game-related lures: the
-<code>cheatdetector[.]shop</code> domain on the same server, programs named <code>SteamClient.exe</code>, and
-one sample's build path <code>12rwqr-main/DWASDAS/SteamClient.exe</code>, which looks like the
-author's own project folder. Fake "cheat detectors", game cheats and "Steam client
-fixes" sent over Discord are the usual route for this kind of malware.</p>
+Steam window that the victim signs in to, with full access to the machine behind it.
+The two hosts it calls serve the platform's Russian-language Steam page, built to fill
+an Electron window (a CSS comment reads "фон как в Electron", "background as in
+Electron"), with a <code>showAuthWin</code> hook that opens the sign-in overlay.</p>
+<p>All five installers carry the same <code>package.json</code> (version <code>10.50.87.67</code>). Their builds
+show the author at work:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Build</th>
+<th>First seen</th>
+<th>Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a0eb8249…</code></td>
+<td>2026-09-19</td>
+<td>Obfuscated JavaScript (<code>main.js</code>, 87 KB) with <code>TARGET_URLS</code>, <code>ANTI_DELETE</code>, <code>PROCESS_PROTECTION</code> and <code>WATCHER_SCRIPT</code> features</td>
+</tr>
+<tr>
+<td><code>b136e43b…</code></td>
+<td>2026-09-22</td>
+<td>Same, rebuilt</td>
+</tr>
+<tr>
+<td><code>6b3bb3be…</code></td>
+<td>2026-10-03</td>
+<td>Compiled V8 bytecode (<code>main.jsc</code>, 124 KB)</td>
+</tr>
+<tr>
+<td><code>64465b46…</code></td>
+<td>2026-10-04</td>
+<td>Bytecode, calls <code>pulse-keys[.]store/6887</code></td>
+</tr>
+<tr>
+<td><code>c8628650…</code></td>
+<td>October</td>
+<td>Bytecode (93 KB), calls <code>fakefake[.]shop/3253523</code> and <code>pulse-keys[.]store/6887</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The switch from readable JavaScript to bytecode in early October hid the logic from
+static scanners, which fits the installers' 0 to 2 detections.</p>
+<h3 id="fake-game-cheats-how-victims-get-infected">Fake game cheats: how victims get infected<a class="headerlink" href="#fake-game-cheats-how-victims-get-infected" title="Permanent link">#</a></h3>
+<p>VirusTotal shows 18 more programs calling <code>fakefake[.]shop</code>. They are named after game
+cheats, injectors and macro tools, and every one that has a label is flagged as a UAC
+bypass dropper (<code>trojan.bypassuac</code>, 7 to 32 engines):</p>
+<blockquote>
+<p>Arcane, Covchec, Division, Evicted Macros, Exlab, Extreme, Fecurity, Hyper, Mason,
+Medusa Lite, Mira, Permanent, Phantom injector, SMG Software, Unicore, Visor</p>
+</blockquote>
+<p>They first appeared between 2026-08-02 and 2026-08-14, a month before the earliest fake
+Steam installer. Several ran from a temporary unpack folder, the pattern of a
+self-extracting "cheat" download.</p>
+<p>This fills the gap in the delivery story. A gamer looking for a cheat downloads a fake
+one, it raises its own privileges, and the machine is then open to the platform's fake
+Steam windows. The <code>cheatdetector[.]shop</code> domain, the Counter-Strike and Rust themed
+domains on the same servers, programs named <code>SteamClient.exe</code>, and one sample's build
+path <code>12rwqr-main/DWASDAS/SteamClient.exe</code> (which looks like the author's own project
+folder) all fit the same picture. We have not tied a specific cheat download to the
+account owner in this case.</p>
 <h2 id="lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam<a class="headerlink" href="#lane-2-the-mrbeast-crypto-casino-scam" title="Permanent link">#</a></h2>
 <h3 id="the-four-image-story">The four-image story<a class="headerlink" href="#the-four-image-story" title="Permanent link">#</a></h3>
 <div class="figs">
@@ -505,12 +612,17 @@ not name a kit.</p>
 <tr>
 <td>The same platform runs the fake-Steam malware</td>
 <td>High</td>
-<td>Three samples call the exact phishing host we fetched; all 16 call the same server</td>
+<td>WebView2 samples load their page from the phishing host we fetched; the Electron installers load theirs from two hosts serving the same Russian-language kit</td>
+</tr>
+<tr>
+<td>The platform spreads through fake game cheats</td>
+<td>Medium-high</td>
+<td>18 cheat-named UAC-bypass droppers call the Electron hosts; cheat- and game-themed domains on the same servers</td>
 </tr>
 <tr>
 <td>Lane 1 operators are Russian-speaking</td>
-<td>Medium</td>
-<td><code>gifting-raduga[.]biz</code>, a Russian-TLD typosquat, a lure uploaded under a Russian file name, bulletproof hosting on AS214351</td>
+<td>Medium-high</td>
+<td>Russian-language kit pages with Russian code comments, <code>gifting-raduga[.]biz</code>, a Russian-TLD typosquat, a lure uploaded under a Russian file name</td>
 </tr>
 <tr>
 <td>Lane 2 is an automated disposable domain farm</td>
@@ -544,12 +656,24 @@ not name a kit.</p>
 <td><code>steamcomrnuunity[.]com</code> registered; certificate issued the next day</td>
 </tr>
 <tr>
+<td>2026-08-02 to 08-14</td>
+<td>Fake game-cheat droppers that call <code>fakefake[.]shop</code> first appear</td>
+</tr>
+<tr>
 <td>2026-09-14</td>
 <td>Certificate renewed; domain moves to <code>62.60.226.75</code></td>
 </tr>
 <tr>
+<td>2026-09-19</td>
+<td>Earliest fake Steam installer build (readable JavaScript)</td>
+</tr>
+<tr>
 <td>2026-09-21</td>
-<td>First fake-Steam program submitted to VirusTotal</td>
+<td>First WebView2 fake-Steam program submitted to VirusTotal</td>
+</tr>
+<tr>
+<td>2026-10-03</td>
+<td>Installers switch to compiled V8 bytecode</td>
 </tr>
 <tr>
 <td>2026-10-10</td>
@@ -618,9 +742,9 @@ not name a kit.</p>
 <td>bytenode V8 bytecode, obfuscated phishing script</td>
 </tr>
 <tr>
-<td>Defense evasion</td>
-<td>T1027.009 Embedded payloads</td>
-<td>RCDATA 300 second stage</td>
+<td>Privilege escalation</td>
+<td>T1548.002 Bypass User Account Control</td>
+<td>Fake game-cheat droppers</td>
 </tr>
 <tr>
 <td>Credential access</td>
@@ -659,8 +783,11 @@ any HTTPS to AS214351.</p>
 <ul>
 <li>Any <code>steam.exe</code> or <code>Steam.exe</code> outside <code>C:\Program Files (x86)\Steam\</code>, especially
   under <code>C:\Windows\</code> with a random 5 to 9 character name.</li>
-<li>Unsigned programs that host an Edge WebView2 window, import WinInet and carry a PE
-  file as resource RCDATA 300.</li>
+<li>Unsigned programs that host an Edge WebView2 window, import WinInet and carry
+  <code>WebView2Loader.dll</code> as resource RCDATA 300.</li>
+<li>Recently downloaded game "cheats", injectors or macro tools, especially any of the
+  names in <a href="#fake-game-cheats-how-victims-get-infected">Fake game cheats</a>, and anything
+  that ran from a <code>%TEMP%</code> unpack folder and triggered a UAC bypass.</li>
 <li>An Electron app whose <code>resources\app.asar</code> contains <code>package.json</code> with
   <code>"name": "steam-login-app"</code>, or a <code>main.js</code> that only requires <code>bytenode</code> and a
   <code>main.jsc</code>.</li>
@@ -843,15 +970,59 @@ sources, are in <a href="iocs.csv">iocs.csv</a> and <a href="iocs.json">iocs.jso
 </tr>
 <tr>
 <td><code>fakefake[.]shop</code></td>
-<td>Exfiltration endpoint (Electron payload)</td>
+<td>Electron fake-Steam page; C2 for fake-cheat droppers</td>
 </tr>
 <tr>
 <td><code>pulse-keys[.]store</code></td>
-<td>Exfiltration endpoint (Electron payload)</td>
+<td>Electron fake-Steam page</td>
+</tr>
+<tr>
+<td><code>dojiner[.]at</code> and its numbered subdomains</td>
+<td>Malware C2</td>
 </tr>
 <tr>
 <td><code>cheatdetector[.]shop</code></td>
 <td>Related to the same server; role unconfirmed</td>
+</tr>
+<tr>
+<td><code>csfly[.]pro</code></td>
+<td>Game-themed lure on the same servers</td>
+</tr>
+<tr>
+<td><code>rustway[.]pro</code></td>
+<td>Game-themed lure on the same servers</td>
+</tr>
+<tr>
+<td><code>rustplus[.]store</code></td>
+<td>Game-themed lure on the same servers</td>
+</tr>
+<tr>
+<td><code>drop2[.]run</code></td>
+<td>Co-hosted on the same servers</td>
+</tr>
+<tr>
+<td><code>falcnox[.]pro</code></td>
+<td>Co-hosted on the same servers</td>
+</tr>
+<tr>
+<td><code>orehvpn[.]cc</code></td>
+<td>Co-hosted on the same servers</td>
+</tr>
+<tr>
+<td><code>steamcomnunltiy[.]com</code></td>
+<td>Steam typosquat</td>
+</tr>
+<tr>
+<td><code>steemcommunity[.]bet</code></td>
+<td>Steam typosquat</td>
+</tr>
+<tr>
+<td><code>steamcomnmunity[.]site</code></td>
+<td>Steam typosquat</td>
+</tr>
+<tr>
+<td><code>stencomnuti[.]com</code></td>
+<td>Steam typosquat</td>
 </tr>
 </tbody>
 </table></div>
@@ -886,11 +1057,23 @@ sources, are in <a href="iocs.csv">iocs.csv</a> and <a href="iocs.json">iocs.jso
 </tr>
 <tr>
 <td><code>hxxps://fakefake[.]shop/3253523</code></td>
-<td>Exfiltration</td>
+<td>Electron payload page</td>
+</tr>
+<tr>
+<td><code>hxxps://fakefake[.]shop/config.txt</code></td>
+<td>Seen on VirusTotal</td>
 </tr>
 <tr>
 <td><code>hxxps://pulse-keys[.]store/6887</code></td>
-<td>Exfiltration</td>
+<td>Electron payload page</td>
+</tr>
+<tr>
+<td><code>hxxps://pulse-keys[.]store/steamkeys.com</code></td>
+<td>Seen on VirusTotal</td>
+</tr>
+<tr>
+<td><code>hxxps://pulse-keys[.]store/app/games</code></td>
+<td>Seen on VirusTotal</td>
 </tr>
 </tbody>
 </table></div>
@@ -1023,6 +1206,109 @@ sources, are in <a href="iocs.csv">iocs.csv</a> and <a href="iocs.json">iocs.jso
 </tr>
 </tbody>
 </table></div>
+<h3 id="fake-game-cheat-droppers-sha-256">Fake game-cheat droppers (SHA-256)<a class="headerlink" href="#fake-game-cheat-droppers-sha-256" title="Permanent link">#</a></h3>
+<p>These call <code>fakefake[.]shop</code>. Profiled from VirusTotal; not analysed by CORD.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>SHA-256</th>
+<th>Name</th>
+<th>VT detections</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>b260dc769ba2217a8ec88d170657cbe02342581154e08d0761f352d7f3b171ee</code></td>
+<td>Phantom injector.exe</td>
+<td>29</td>
+</tr>
+<tr>
+<td><code>25b345198484ae19da39df949611a35d3f3dba322d143bd756dd63b0544e47a1</code></td>
+<td>Arcane.exe</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>3ec862f9261aa03da6a3f5dccadff6fa35744e55ba0b4ca46c33108b869f922f</code></td>
+<td>Hyper.exe</td>
+<td>31</td>
+</tr>
+<tr>
+<td><code>4925be7c14208711e4c87157882bffcd11b795f488e8cd018174be0cddc82950</code></td>
+<td>Mira.exe</td>
+<td>32</td>
+</tr>
+<tr>
+<td><code>ff64f52a8156eb3450cf2e3050a85a3916148c46558740aaee76d6f6baabeb90</code></td>
+<td>Covchec.exe</td>
+<td>29</td>
+</tr>
+<tr>
+<td><code>2dade25f2aebb8a8db39d237571c5e0ad3d2740d62c94a41e063a5bd169b6708</code></td>
+<td>Covchec.exe</td>
+<td>31</td>
+</tr>
+<tr>
+<td><code>d51c15fbe931a2e1812296e22454a4662eb82e645f2364b6b0976f373ba7084d</code></td>
+<td>Visor.exe</td>
+<td>30</td>
+</tr>
+<tr>
+<td><code>717792d839571b90143d81749d0e5d533bcf2e0906e76a1960661e4799252c9c</code></td>
+<td>Division.exe</td>
+<td>32</td>
+</tr>
+<tr>
+<td><code>8da77e9e7e1a67188d37d7679cdcdaf1136b2b81e359e2e19ceb41ebec8a32f0</code></td>
+<td>Permanent.exe</td>
+<td>19</td>
+</tr>
+<tr>
+<td><code>67370caee481a3b36b545fd5fec22fb9e532ba340243b98b752d3544b0b9c2cd</code></td>
+<td>Extreme.exe</td>
+<td>26</td>
+</tr>
+<tr>
+<td><code>84f3921ce27d2dc34669cb5574788ec53d1d55fee96a9ab6168a5e4a654d34a7</code></td>
+<td>Unicore.exe</td>
+<td>29</td>
+</tr>
+<tr>
+<td><code>a9ec9aeb42ab370854802c0be40b0d1f3f0081e5a970779f380f0dd63326d710</code></td>
+<td>Exlab.exe</td>
+<td>32</td>
+</tr>
+<tr>
+<td><code>cd489e5972e77a4a51fe59891607ab81e75e248992e2a1bfa4daaaddb78da0c8</code></td>
+<td>SMG Software.exe</td>
+<td>31</td>
+</tr>
+<tr>
+<td><code>e8e8a489bb9a2dbb32c3e9e53fe347dcf29ffe57d858f8d4b43dbee081787f3c</code></td>
+<td>Evicted Macros.exe</td>
+<td>26</td>
+</tr>
+<tr>
+<td><code>706f3cf2746a6e47571a0d87883aeed6368942492c01a7c8dcd8abeeabfdce05</code></td>
+<td>Medusa Lite.exe</td>
+<td>32</td>
+</tr>
+<tr>
+<td><code>9decb9f1ffc8f088f7875abd451c3aeb33e0bd0d0650f0da18f3456205c50cb2</code></td>
+<td>Fecurity.exe</td>
+<td>25</td>
+</tr>
+<tr>
+<td><code>c2fa1e8989a5a9654f1db44100305a80a4ac25ac2d285ef04f8107f640437f6d</code></td>
+<td>Mason.exe</td>
+<td>31</td>
+</tr>
+<tr>
+<td><code>1af0554341779498e5598d9b31c7dcfc29569653d4c60a846bcda59ac794b083</code></td>
+<td>(no name)</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
 <h3 id="lure-images-sha-256">Lure images (SHA-256)<a class="headerlink" href="#lure-images-sha-256" title="Permanent link">#</a></h3>
 <p>The Discord images change hash with every copy, so these four hashes identify only our
 copies.</p>
@@ -1114,8 +1400,10 @@ copies.</p>
 <h3 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">#</a></h3>
 <ul>
 <li>We did not see what the fake sign-in box sends, because we did not run its script.</li>
-<li>The second-stage program inside the WebView2 samples, and four of the five
-  installers, were analysed only partly.</li>
+<li>Four of the five installers were extracted and compared, not analysed in full. The
+  two September builds hide their URLs in an obfuscated string table that only runs
+  can decode.</li>
+<li>The 18 fake-cheat droppers were profiled from VirusTotal data, not analysed by us.</li>
 <li>The casino's backend and deposit wallets were offline or absent from archived pages.</li>
 <li>How the account owner's PC was first infected is unknown without access to it.</li>
 </ul></article>

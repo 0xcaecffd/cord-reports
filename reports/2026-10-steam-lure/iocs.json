@@ -64,19 +64,85 @@
   {
    "type": "domain",
    "value": "fakefake.shop",
-   "role": "Exfiltration endpoint (Electron payload)",
+   "role": "Electron fake-Steam page; C2 for fake-cheat droppers",
    "category": "Phishing and C2 domains"
   },
   {
    "type": "domain",
    "value": "pulse-keys.store",
-   "role": "Exfiltration endpoint (Electron payload)",
+   "role": "Electron fake-Steam page",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "dojiner.at",
+   "role": "Malware C2",
    "category": "Phishing and C2 domains"
   },
   {
    "type": "domain",
    "value": "cheatdetector.shop",
    "role": "Related to the same server; role unconfirmed",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "csfly.pro",
+   "role": "Game-themed lure on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "rustway.pro",
+   "role": "Game-themed lure on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "rustplus.store",
+   "role": "Game-themed lure on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "drop2.run",
+   "role": "Co-hosted on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "falcnox.pro",
+   "role": "Co-hosted on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "orehvpn.cc",
+   "role": "Co-hosted on the same servers",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steamcomnunltiy.com",
+   "role": "Steam typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steemcommunity.bet",
+   "role": "Steam typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steamcomnmunity.site",
+   "role": "Steam typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "stencomnuti.com",
+   "role": "Steam typosquat",
    "category": "Phishing and C2 domains"
   },
   {
@@ -112,13 +178,31 @@
   {
    "type": "url",
    "value": "https://fakefake.shop/3253523",
-   "role": "Exfiltration",
+   "role": "Electron payload page",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://fakefake.shop/config.txt",
+   "role": "Seen on VirusTotal",
    "category": "URLs"
   },
   {
    "type": "url",
    "value": "https://pulse-keys.store/6887",
-   "role": "Exfiltration",
+   "role": "Electron payload page",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://pulse-keys.store/steamkeys.com",
+   "role": "Seen on VirusTotal",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://pulse-keys.store/app/games",
+   "role": "Seen on VirusTotal",
    "category": "URLs"
   },
   {
@@ -246,6 +330,114 @@
    "value": "3bf8b47b12d4630495baf611033c80ac6d31c27117b8a0409048d52b8e6260f7",
    "role": "`main.jsc` bytecode payload / n/a",
    "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "b260dc769ba2217a8ec88d170657cbe02342581154e08d0761f352d7f3b171ee",
+   "role": "Phantom injector.exe / 29",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "25b345198484ae19da39df949611a35d3f3dba322d143bd756dd63b0544e47a1",
+   "role": "Arcane.exe / 7",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "3ec862f9261aa03da6a3f5dccadff6fa35744e55ba0b4ca46c33108b869f922f",
+   "role": "Hyper.exe / 31",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "4925be7c14208711e4c87157882bffcd11b795f488e8cd018174be0cddc82950",
+   "role": "Mira.exe / 32",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "ff64f52a8156eb3450cf2e3050a85a3916148c46558740aaee76d6f6baabeb90",
+   "role": "Covchec.exe / 29",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "2dade25f2aebb8a8db39d237571c5e0ad3d2740d62c94a41e063a5bd169b6708",
+   "role": "Covchec.exe / 31",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "d51c15fbe931a2e1812296e22454a4662eb82e645f2364b6b0976f373ba7084d",
+   "role": "Visor.exe / 30",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "717792d839571b90143d81749d0e5d533bcf2e0906e76a1960661e4799252c9c",
+   "role": "Division.exe / 32",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "8da77e9e7e1a67188d37d7679cdcdaf1136b2b81e359e2e19ceb41ebec8a32f0",
+   "role": "Permanent.exe / 19",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "67370caee481a3b36b545fd5fec22fb9e532ba340243b98b752d3544b0b9c2cd",
+   "role": "Extreme.exe / 26",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "84f3921ce27d2dc34669cb5574788ec53d1d55fee96a9ab6168a5e4a654d34a7",
+   "role": "Unicore.exe / 29",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "a9ec9aeb42ab370854802c0be40b0d1f3f0081e5a970779f380f0dd63326d710",
+   "role": "Exlab.exe / 32",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "cd489e5972e77a4a51fe59891607ab81e75e248992e2a1bfa4daaaddb78da0c8",
+   "role": "SMG Software.exe / 31",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "e8e8a489bb9a2dbb32c3e9e53fe347dcf29ffe57d858f8d4b43dbee081787f3c",
+   "role": "Evicted Macros.exe / 26",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "706f3cf2746a6e47571a0d87883aeed6368942492c01a7c8dcd8abeeabfdce05",
+   "role": "Medusa Lite.exe / 32",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "9decb9f1ffc8f088f7875abd451c3aeb33e0bd0d0650f0da18f3456205c50cb2",
+   "role": "Fecurity.exe / 25",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "c2fa1e8989a5a9654f1db44100305a80a4ac25ac2d285ef04f8107f640437f6d",
+   "role": "Mason.exe / 31",
+   "category": "Fake game-cheat droppers (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "1af0554341779498e5598d9b31c7dcfc29569653d4c60a846bcda59ac794b083",
+   "role": "(no name) / 0",
+   "category": "Fake game-cheat droppers (SHA-256)"
   },
   {
    "type": "sha256",

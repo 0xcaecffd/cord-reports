@@ -9,16 +9,30 @@ domain,rtgift.com,Gift-card phish,Phishing and C2 domains
 domain,f1shh.at,Phishing pages and malware C2,Phishing and C2 domains
 domain,8909451279.f1shh.at,Phishing page `/client` and C2 for three samples,Phishing and C2 domains
 domain,koooolda.shop,Malware C2,Phishing and C2 domains
-domain,fakefake.shop,Exfiltration endpoint (Electron payload),Phishing and C2 domains
-domain,pulse-keys.store,Exfiltration endpoint (Electron payload),Phishing and C2 domains
+domain,fakefake.shop,Electron fake-Steam page; C2 for fake-cheat droppers,Phishing and C2 domains
+domain,pulse-keys.store,Electron fake-Steam page,Phishing and C2 domains
+domain,dojiner.at,Malware C2,Phishing and C2 domains
 domain,cheatdetector.shop,Related to the same server; role unconfirmed,Phishing and C2 domains
+domain,csfly.pro,Game-themed lure on the same servers,Phishing and C2 domains
+domain,rustway.pro,Game-themed lure on the same servers,Phishing and C2 domains
+domain,rustplus.store,Game-themed lure on the same servers,Phishing and C2 domains
+domain,drop2.run,Co-hosted on the same servers,Phishing and C2 domains
+domain,falcnox.pro,Co-hosted on the same servers,Phishing and C2 domains
+domain,orehvpn.cc,Co-hosted on the same servers,Phishing and C2 domains
+domain,steamcomnunltiy.com,Steam typosquat,Phishing and C2 domains
+domain,steemcommunity.bet,Steam typosquat,Phishing and C2 domains
+domain,steamcomnmunity.site,Steam typosquat,Phishing and C2 domains
+domain,stencomnuti.com,Steam typosquat,Phishing and C2 domains
 url,https://steamcomrnuunity.com/code/2035922,QR destination in the lure,URLs
 url,https://steamcomrnuunity.com/code/647829,Lure code,URLs
 url,https://steamcomrnuunity.com/code/876809,Lure code,URLs
 url,https://steamcomrnuunity.com/code/3454765444,Lure code,URLs
 url,https://8909451279.f1shh.at/client,Phishing page loaded by the WebView2 program,URLs
-url,https://fakefake.shop/3253523,Exfiltration,URLs
-url,https://pulse-keys.store/6887,Exfiltration,URLs
+url,https://fakefake.shop/3253523,Electron payload page,URLs
+url,https://fakefake.shop/config.txt,Seen on VirusTotal,URLs
+url,https://pulse-keys.store/6887,Electron payload page,URLs
+url,https://pulse-keys.store/steamkeys.com,Seen on VirusTotal,URLs
+url,https://pulse-keys.store/app/games,Seen on VirusTotal,URLs
 ip,62.60.226.75,"FEMO IT Solutions, AS214351 / Phishing host and malware C2",IP addresses
 ip,192.162.199.140,"FEMO IT Solutions, AS214351 / Phishing host and typosquats",IP addresses
 ip,172.86.88.161,"RouterHosting / Cloudzy, AS14956 / Casino farm (offline when checked)",IP addresses
@@ -40,6 +54,24 @@ sha256,a0eb8249298c1119fa1ba389d41d61e32f98f8422e61f9cf360ff7e918f4f303,NSIS + E
 sha256,b136e43ba624c154d60a52c993963096ddb431e67a120bb993dcf8cf8d291b9e,NSIS + Electron installer / 0,Malware (SHA-256)
 sha256,6942177c4eae47027e058bdadec8d82afb4826ea4e459ac0e5bc938038f417cc,`app.asar` from the installer / n/a,Malware (SHA-256)
 sha256,3bf8b47b12d4630495baf611033c80ac6d31c27117b8a0409048d52b8e6260f7,`main.jsc` bytecode payload / n/a,Malware (SHA-256)
+sha256,b260dc769ba2217a8ec88d170657cbe02342581154e08d0761f352d7f3b171ee,Phantom injector.exe / 29,Fake game-cheat droppers (SHA-256)
+sha256,25b345198484ae19da39df949611a35d3f3dba322d143bd756dd63b0544e47a1,Arcane.exe / 7,Fake game-cheat droppers (SHA-256)
+sha256,3ec862f9261aa03da6a3f5dccadff6fa35744e55ba0b4ca46c33108b869f922f,Hyper.exe / 31,Fake game-cheat droppers (SHA-256)
+sha256,4925be7c14208711e4c87157882bffcd11b795f488e8cd018174be0cddc82950,Mira.exe / 32,Fake game-cheat droppers (SHA-256)
+sha256,ff64f52a8156eb3450cf2e3050a85a3916148c46558740aaee76d6f6baabeb90,Covchec.exe / 29,Fake game-cheat droppers (SHA-256)
+sha256,2dade25f2aebb8a8db39d237571c5e0ad3d2740d62c94a41e063a5bd169b6708,Covchec.exe / 31,Fake game-cheat droppers (SHA-256)
+sha256,d51c15fbe931a2e1812296e22454a4662eb82e645f2364b6b0976f373ba7084d,Visor.exe / 30,Fake game-cheat droppers (SHA-256)
+sha256,717792d839571b90143d81749d0e5d533bcf2e0906e76a1960661e4799252c9c,Division.exe / 32,Fake game-cheat droppers (SHA-256)
+sha256,8da77e9e7e1a67188d37d7679cdcdaf1136b2b81e359e2e19ceb41ebec8a32f0,Permanent.exe / 19,Fake game-cheat droppers (SHA-256)
+sha256,67370caee481a3b36b545fd5fec22fb9e532ba340243b98b752d3544b0b9c2cd,Extreme.exe / 26,Fake game-cheat droppers (SHA-256)
+sha256,84f3921ce27d2dc34669cb5574788ec53d1d55fee96a9ab6168a5e4a654d34a7,Unicore.exe / 29,Fake game-cheat droppers (SHA-256)
+sha256,a9ec9aeb42ab370854802c0be40b0d1f3f0081e5a970779f380f0dd63326d710,Exlab.exe / 32,Fake game-cheat droppers (SHA-256)
+sha256,cd489e5972e77a4a51fe59891607ab81e75e248992e2a1bfa4daaaddb78da0c8,SMG Software.exe / 31,Fake game-cheat droppers (SHA-256)
+sha256,e8e8a489bb9a2dbb32c3e9e53fe347dcf29ffe57d858f8d4b43dbee081787f3c,Evicted Macros.exe / 26,Fake game-cheat droppers (SHA-256)
+sha256,706f3cf2746a6e47571a0d87883aeed6368942492c01a7c8dcd8abeeabfdce05,Medusa Lite.exe / 32,Fake game-cheat droppers (SHA-256)
+sha256,9decb9f1ffc8f088f7875abd451c3aeb33e0bd0d0650f0da18f3456205c50cb2,Fecurity.exe / 25,Fake game-cheat droppers (SHA-256)
+sha256,c2fa1e8989a5a9654f1db44100305a80a4ac25ac2d285ef04f8107f640437f6d,Mason.exe / 31,Fake game-cheat droppers (SHA-256)
+sha256,1af0554341779498e5598d9b31c7dcfc29569653d4c60a846bcda59ac794b083,(no name) / 0,Fake game-cheat droppers (SHA-256)
 sha256,8357109d570f6f7d477ba4cbd56298b432764c756dcbde8b8e9157cd64065828,Steam gift-card QR lure,Lure images (SHA-256)
 sha256,e3758d3b1b5f748867c75e3bd4002adf5d4cba7fe0594933650116b77b7f0931,Fake MrBeast post,Lure images (SHA-256)
 sha256,0b2996ad895ebbb6b130133068ddf578f16dab98a8da2ab6c676f90db4b2215e,Casino bonus page,Lure images (SHA-256)
