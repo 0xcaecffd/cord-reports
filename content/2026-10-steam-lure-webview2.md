@@ -10,10 +10,24 @@ hidden: true
 <div class="callout" markdown="1">
 
 Technical companion to [the main report](../2026-10-steam-lure/index.html). This is the CORD Research
-pipeline's full static analysis of one representative sample, published as produced:
+pipeline's first automated static analysis of one representative sample, published as produced:
 questions, narrative, layers, behaviours, IOCs, detection anchors, reachability, unknowns,
 functions and evidence. Nothing was executed. Evidence hashes are SHA-256 prefixes of the
 exact bytes each claim rests on.
+
+</div>
+
+<div class="callout bad" markdown="1">
+
+**Corrected by a later full re-analysis.** A deeper static pass overturned four claims on
+this page. The program runs WebView2 with **Node integration off**, not on. Its file bridge
+(`window.steamm`) reads and writes **only inside the program's own folder**, not across the
+machine. The "system fingerprint" function at `0x1400094c0` is **unreferenced junk** that
+changes size each build to vary the hash, not a real routine. And the program steals nothing
+from disk: it is a **credential-relay shell** that relays the typed Steam login. The
+corrected account is in [the main report's malware
+section](../2026-10-steam-lure/index.html#the-malware-fake-steam-apps-and-game-cheats). The
+anchors and evidence below are left as the pipeline produced them.
 
 </div>
 

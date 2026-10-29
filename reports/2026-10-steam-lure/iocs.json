@@ -28,7 +28,7 @@
   {
    "type": "domain",
    "value": "steamcommunlty.site",
-   "role": "Steam typosquat (8 subdomains)",
+   "role": "Steam typosquat (about 30 subdomains)",
    "category": "Phishing and C2 domains"
   },
   {
@@ -59,6 +59,12 @@
    "type": "domain",
    "value": "koooolda.shop",
    "role": "Malware C2",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "njrlmwtgpk.shop",
+   "role": "Electron fake-Steam page (first of the three target hosts). Behind Cloudflare, DGA-tagged",
    "category": "Phishing and C2 domains"
   },
   {
@@ -177,6 +183,18 @@
   },
   {
    "type": "url",
+   "value": "https://njrlmwtgpk.shop/2123223",
+   "role": "Electron fake-Steam page (first target host)",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://koooolda.shop/43413",
+   "role": "C2 for the Steam client hijacker (`3d2b12f8`)",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
    "value": "https://fakefake.shop/3253523",
    "role": "Electron payload page",
    "category": "URLs"
@@ -226,67 +244,67 @@
   {
    "type": "sha256",
    "value": "f27af032b01fc6982ff936086eaeeaa6a517a9b3fad74939ee4e50729c9e3b2c",
-   "role": "WebView2 fake Steam (analysed) / 40",
+   "role": "WebView2 relay shell (analysed) / 40",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "dd5675e5c0e335ac53c81104ccc4eed58180f566970c083d417662c8e4156e2e",
-   "role": "WebView2 fake Steam / 40",
+   "role": "WebView2 relay shell / 40",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "5675b9a830e4b89e0ce31f23107467afdd727e38a38f5a72894ad5d4287be755",
-   "role": "WebView2 fake Steam / 36",
+   "role": "WebView2 relay shell / 36",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "234c7abcc91b42473c00183c12e7dd0f81126344b21973c2ff68d346d589a9ed",
-   "role": "WebView2 fake Steam / 34",
+   "role": "WebView2 relay shell / 34",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "a8e5ce0d903b179b2a53f0d21c54cbd009590cc6683a4ba5fda32aa33818627a",
-   "role": "WebView2 fake Steam / 20",
+   "role": "WebView2 relay shell / 20",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "0edcc9061d88c6f0c24ff35d0a2e22387636461db707020d3a70b23cbd523579",
-   "role": "WebView2 fake Steam / 19",
+   "role": "WebView2 relay shell / 19",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "224538f4d2f58ac89a5939edcfbcafdb5956aa02320cec5aec1e5ce6f1482468",
-   "role": "WebView2 fake Steam / 17",
+   "role": "WebView2 relay shell / 17",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "b0da0012552f229de3a01d1775fa37a343d69a32bf6ef33b0170e54e13df621c",
-   "role": "WebView2 fake Steam / 14",
+   "role": "WebView2 relay shell / 14",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "0394a4bbce427fc134363fd805142bc6051a1046042473f7113dbbb43e86ef52",
-   "role": "WebView2 fake Steam / 13",
+   "role": "WebView2 relay shell / 13",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "0e302546468e0accc4ed98d60aed83246d671acdaf0728d9ac2cfe48c118615b",
-   "role": "WebView2 fake Steam / 9",
+   "role": "WebView2 relay shell / 9",
    "category": "Malware (SHA-256)"
   },
   {
    "type": "sha256",
    "value": "3d2b12f8523f92e0e91f3041e2658b98ee07896c54043922ca73c7c17f19cdff",
-   "role": "Fake SteamClient.exe / 3",
+   "role": "Steam client hijacker (persistent; replaces `steam.exe`) / 3",
    "category": "Malware (SHA-256)"
   },
   {
@@ -513,8 +531,32 @@
   },
   {
    "type": "electron package name",
-   "value": "steam-login-app",
+   "value": "steam-login-app (author \"Valve Corporation\", version 10.50.87.67)",
    "role": "Electron package name",
+   "category": "Other"
+  },
+  {
+   "type": "relay kit api prefix",
+   "value": "DyNaM1c (plus the action name, XOR-encrypted with the affiliate cookie's secret)",
+   "role": "Relay kit API prefix",
+   "category": "Other"
+  },
+  {
+   "type": "relay kit actions",
+   "value": "visit, doLogin, submitCode, checkConfirmations",
+   "role": "Relay kit actions",
+   "category": "Other"
+  },
+  {
+   "type": "webview2 bridge",
+   "value": "window.steamm (methods win.min/drag/resize/close, fs.readText/writeText, http.request, shell.open)",
+   "role": "WebView2 bridge",
+   "category": "Other"
+  },
+  {
+   "type": "hijacker artifacts",
+   "value": "steam.orig.exe / steam.live.exe; process title svchost.exe",
+   "role": "Hijacker artifacts",
    "category": "Other"
   }
  ]

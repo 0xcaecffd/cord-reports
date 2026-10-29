@@ -56,20 +56,29 @@ def page(title: str, body: str, depth: int, description: str = "") -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(title)}</title>
 <meta name="description" content="{html.escape(description)}">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" href="{up}assets/mark.svg" type="image/svg+xml">
 <link rel="stylesheet" href="{up}assets/tokens.css">
 <link rel="stylesheet" href="{up}assets/site.css">
+<script>/* set the saved theme before first paint so there is no flash */
+try{{var t=localStorage.getItem("cord-theme");if(t)document.documentElement.setAttribute("data-theme",t);}}catch(e){{}}</script>
 </head>
 <body>
+<div class="progress" aria-hidden="true"></div>
 <header class="top"><div class="in">
 <a class="brand" href="{up}index.html" aria-label="{SITE} home">{logo()}</a>
 <span class="site">Reports</span>
-<nav><a href="{up}index.html">All reports</a><a href="{up}about.html">About</a></nav>
+<nav><a href="{up}index.html">All reports</a><a href="{up}about.html">About</a>
+<button class="theme-toggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">
+<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button></nav>
 </div></header>
 {body}
-<footer class="wrap">CORD &middot; Cluster, Optimize, Research, Detection. Defensive threat research on
+<footer>CORD &middot; Cluster, Optimize, Research, Detection. Defensive threat research on
 malware and scams already in circulation. Indicators are defanged; never visit them from a
 normal browser.</footer>
+<script src="{up}assets/app.js" defer></script>
 </body>
 </html>
 """

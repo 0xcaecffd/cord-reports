@@ -10,10 +10,24 @@ hidden: true
 <div class="callout" markdown="1">
 
 Technical companion to [the main report](../2026-10-steam-lure/index.html). This is the CORD Research
-pipeline's full static analysis of one representative sample, published as produced:
+pipeline's first automated static analysis of one representative sample, published as produced:
 questions, narrative, layers, behaviours, IOCs, detection anchors, reachability, unknowns,
 functions and evidence. Nothing was executed. Evidence hashes are SHA-256 prefixes of the
 exact bytes each claim rests on.
+
+</div>
+
+<div class="callout bad" markdown="1">
+
+**Corrected by a later full re-analysis.** A deeper static pass refined this page's
+account of the payload. The Electron app runs with **Node integration off**, not on. It
+does **not** read browser storage, cookies or files from the machine: it is a
+**credential-relay shell** that loads the operator's fake Steam page and relays the typed
+login. The payload tries three target hosts (`njrlmwtgpk[.]shop`, `fakefake[.]shop`,
+`pulse-keys[.]store`), and the September builds' logic was fully decoded. The corrected
+account is in [the main report's malware
+section](../2026-10-steam-lure/index.html#the-malware-fake-steam-apps-and-game-cheats). The
+layers and evidence below are left as the pipeline produced them.
 
 </div>
 

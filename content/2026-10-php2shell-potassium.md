@@ -33,7 +33,7 @@ cleanup that a normal request runs. What that skipped cleanup leaves behind deci
 path opens.
 
 <figure class="diagram">
-<svg viewBox="0 0 760 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="d-t d-d" class="chaindiag" font-family="var(--font-sans)">
+<svg viewBox="0 0 760 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="d-t d-d" class="chaindiag" font-family="var(--font-sans)">
 <title id="d-t">PHP2Shell: four RCE paths from one out-of-memory bailout</title>
 <desc id="d-d">A crafted upload makes PHP run out of memory mid-parse; the bailout skips session cleanup. Three patched paths reclaim a dangling reference to run a command on stock PHP; a fourth, unpatched path injects an object that needs a framework gadget. The attacker then installs the potassium DDoS bot.</desc>
 <style>
@@ -126,7 +126,6 @@ path opens.
 
 ### The paths at a glance
 
-<div class="tw">
 
 | | 109618 Big-field | 109619 Filename | 109618 Unserialize | 115560 Serializer mismatch |
 |---|---|---|---|---|
@@ -138,7 +137,6 @@ path opens.
 | **Fixed?** | Yes, 8.3.36+ | Yes, 8.3.36+ | Yes, 8.3.36+ | **No** |
 | **Also affects** | mod_php prefork | mod_php prefork | mod_php prefork | Any SAPI (mod_php, FPM) |
 
-</div>
 
 All three memory-corruption paths were confirmed on default configuration: 14 segfaults in
 15 rounds on the vulnerable build, and 0 crashes in 261 rounds on the patched build with
@@ -187,7 +185,6 @@ is the right call.
 
 ### Request-side (Suricata)
 
-<div class="tw">
 
 | SID | What it matches | Big-field | Filename | Unserialize | 115560 |
 |---|---|---|---|---|---|
@@ -198,22 +195,18 @@ is the right call.
 | 92610040 | Upload-progress request with no file part | fire | fire | fire | no |
 | 92610041 | Session-pinned upload carrying progress | OOM | OOM | OOM | yes |
 
-</div>
 
 ### Response-side (Suricata)
 
-<div class="tw">
 
 | SID | What it matches | Use |
 |---|---|---|
 | 92610053 | Oversized `PHPSESSID` (> 64 chars) in `Set-Cookie` | the info-leak stages |
 | 92610054 | Non-hex `PHPSESSID` in `Set-Cookie` | the info-leak stages |
 
-</div>
 
 ### Host-side signals
 
-<div class="tw">
 
 | Signal | Crash exit | Silent use-after-free | Serializer mismatch |
 |---|---|---|---|
@@ -223,7 +216,6 @@ is the right call.
 | `Failed to write session data (files)` | no (dead worker) | yes (30/30) | no |
 | HTTP status of the second request | connection closed | **200** | **200** |
 
-</div>
 
 **The reliable detector is the ordered triple**: request 1 logs `Allowed memory size
 exhausted`, then request 2 returns HTTP 200 while logging `Failed to write session data`,
@@ -244,7 +236,6 @@ memory-corruption paths. It does not catch the serializer mismatch.
 
 ### Mitigations
 
-<div class="tw">
 
 | Mitigation | 109618 / 109619 (and the DoS variant) | 115560 |
 |---|---|---|
@@ -255,7 +246,6 @@ memory-corruption paths. It does not catch the serializer mismatch.
 | Raising `memory_limit` | No help: moves where the failure lands, does not stop it | n/a |
 | `session.use_strict_mode = 1` | No help: one harmless request earns a server-issued session ID that strict mode accepts | n/a |
 
-</div>
 
 ---
 
@@ -288,7 +278,6 @@ This sample is one build off a production line. We scored every related file in 
 
 In short: this is an actively maintained, multi-platform family, from Linux servers to Android devices, not a one-off.
 
----
 
 ---
 
@@ -322,7 +311,6 @@ Because the blockchain is public, we could read who owns those names and who pai
 
 They are competent and deliberate: encrypted builds, rotating infrastructure, decoy addressing, disposable funding wallets, a blockchain fallback waiting in the wings, and wallet keys kept off the public record. But the discipline is uneven. They let developer builds slip out with their internal file names intact, and the money trail still touches a named exchange. Two soft signals, which we hold loosely, point toward a European operator: their blockchain activity clusters in a 06:00–14:00 UTC window (European working hours), and Deepfield observed Dutch-language content in an earlier campaign.
 
----
 
 ---
 
@@ -604,15 +592,15 @@ Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154
 | `hxxp://dedi9999[.]abuse[.]st/` | URL under abuse.st |
 | `hxxp://dedinumberinfinite[.]abuse[.]st/` | URL under abuse.st |
 | `hxxp://dvrdownloader[.]abuse[.]st/` | URL under abuse.st |
-| `hxxp://dvrs[.]botlesscucks[.]st/` | URL under botlesscucks.st; URL under dvrs.botlesscucks.st |
+| `hxxp://dvrs[.]botlesscucks[.]st/` | URL under botlesscucks.st; URL under dvrs[.]botlesscucks[.]st |
 | `hxxp://fsocietyhackattack[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 | `hxxp://gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st |
 | `hxxp://godofthunder[.]st/` | URL under godofthunder.st |
-| `hxxp://hackattackkaboom[.]botlesscucks[.]st/` | URL under hackattackkaboom.botlesscucks.st |
-| `hxxp://hackattackkaboom[.]botlesscucks[.]st/arm7` | URL under hackattackkaboom.botlesscucks.st |
-| `hxxp://hackattackkaboom[.]botlesscucks[.]st/x86_64` | URL under hackattackkaboom.botlesscucks.st |
-| `hxxp://hik[.]gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st; URL under hik.gettingheadfromduckysmom.st |
-| `hxxp://ijustgetsonervy[.]potassium[.]st/` | URL under ijustgetsonervy.potassium.st; URL under potassium.st |
+| `hxxp://hackattackkaboom[.]botlesscucks[.]st/` | URL under hackattackkaboom[.]botlesscucks[.]st |
+| `hxxp://hackattackkaboom[.]botlesscucks[.]st/arm7` | URL under hackattackkaboom[.]botlesscucks[.]st |
+| `hxxp://hackattackkaboom[.]botlesscucks[.]st/x86_64` | URL under hackattackkaboom[.]botlesscucks[.]st |
+| `hxxp://hik[.]gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st; URL under hik[.]gettingheadfromduckysmom[.]st |
+| `hxxp://ijustgetsonervy[.]potassium[.]st/` | URL under ijustgetsonervy[.]potassium[.]st; URL under potassium.st |
 | `hxxp://ijustgetsonervy1[.]potassium[.]st/` | URL under potassium.st |
 | `hxxp://iloveboats[.]st/` | URL under iloveboats.st |
 | `hxxp://iloveboats[.]st:8081/bash[.]sh` | URL under iloveboats.st |
@@ -637,7 +625,7 @@ Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154
 | `hxxp://smart[.]abuse[.]st/` | URL under abuse.st |
 | `hxxp://stoplooking1[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 | `hxxp://stoplooking2[.]botlesscucks[.]st/` | URL under botlesscucks.st |
-| `hxxp://thunder[.]godofthunder[.]st/` | URL under godofthunder.st; URL under thunder.godofthunder.st |
+| `hxxp://thunder[.]godofthunder[.]st/` | URL under godofthunder.st; URL under thunder[.]godofthunder[.]st |
 | `hxxp://tvt[.]abuse[.]st/` | URL under abuse.st |
 | `hxxp://vitacocoyougoloco[.]potassium[.]st/` | URL under potassium.st |
 | `hxxp://vitacocoyoungoloco[.]potassium[.]st/` | URL under potassium.st |
@@ -659,12 +647,12 @@ Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154
 | `hxxps://abusing[.]abuse[.]st/` | URL under abuse.st |
 | `hxxps://boom[.]abuse[.]st/` | URL under abuse.st |
 | `hxxps://botlesscucks[.]st/` | URL under botlesscucks.st |
-| `hxxps://dvrs[.]botlesscucks[.]st/` | URL under dvrs.botlesscucks.st |
+| `hxxps://dvrs[.]botlesscucks[.]st/` | URL under dvrs[.]botlesscucks[.]st |
 | `hxxps://fsocietyhackattack[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 | `hxxps://gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st |
-| `hxxps://hackattackkaboom[.]botlesscucks[.]st/` | URL under botlesscucks.st; URL under hackattackkaboom.botlesscucks.st |
-| `hxxps://hik[.]gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st; URL under hik.gettingheadfromduckysmom.st |
-| `hxxps://ijustgetsonervy[.]potassium[.]st/` | URL under ijustgetsonervy.potassium.st; URL under potassium.st |
+| `hxxps://hackattackkaboom[.]botlesscucks[.]st/` | URL under botlesscucks.st; URL under hackattackkaboom[.]botlesscucks[.]st |
+| `hxxps://hik[.]gettingheadfromduckysmom[.]st/` | URL under gettingheadfromduckysmom.st; URL under hik[.]gettingheadfromduckysmom[.]st |
+| `hxxps://ijustgetsonervy[.]potassium[.]st/` | URL under ijustgetsonervy[.]potassium[.]st; URL under potassium.st |
 | `hxxps://ijustgetsonervy1[.]potassium[.]st/` | URL under potassium.st |
 | `hxxps://iloveboats[.]st/` | URL under iloveboats.st |
 | `hxxps://musika[.]botlesscucks[.]st/` | URL under botlesscucks.st |
@@ -672,7 +660,7 @@ Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154
 | `hxxps://smart[.]abuse[.]st/` | URL under abuse.st |
 | `hxxps://stoplooking[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 | `hxxps://stoplooking2[.]botlesscucks[.]st/` | URL under botlesscucks.st |
-| `hxxps://thunder[.]godofthunder[.]st/` | URL under godofthunder.st; URL under thunder.godofthunder.st |
+| `hxxps://thunder[.]godofthunder[.]st/` | URL under godofthunder.st; URL under thunder[.]godofthunder[.]st |
 | `hxxps://tvt[.]abuse[.]st/` | URL under abuse.st |
 | `hxxps://vitacocoyougoloco[.]potassium[.]st/` | URL under potassium.st |
 | `hxxps://www[.]abusing[.]abuse[.]st/` | URL under abuse.st |
