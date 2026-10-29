@@ -1,250 +1,202 @@
 ---
 title: From a PHP flaw to a global botnet: PHP2Shell and the potassium Mirai lineage
 date: 2026-10-27
-summary: Executive debrief. A critical PHP session flaw exploited within hours of its patch, the encrypted Mirai-derived DDoS bot pushed through it, and the operator behind it, down to decoy DNS, a blockchain C2 fallback and a money trail that reaches named exchanges.
+updated: 2026-10-29 (full technical edition)
+summary: Executive debrief, full technical edition. Two critical PHP session flaws turned into remote code execution on default installs, the encrypted Mirai-derived DDoS bot pushed through them within hours, and the operator behind it, down to decoy DNS, an Ethereum C2 fallback and a money trail to named exchanges.
 tlp: CLEAR
 tags: php, mirai, ddos, linux, blockchain
 ---
 
 <div class="cards">
+<div class="card"><div class="k">RCE chains demonstrated</div><div class="v">4</div></div>
 <div class="card"><div class="k">Detection at discovery</div><div class="v">4 / ~65</div></div>
 <div class="card"><div class="k">Related builds found</div><div class="v">36+</div></div>
 <div class="card"><div class="k">Real C2 servers recovered</div><div class="v">9</div></div>
 <div class="card"><div class="k">YARA false positives on clean software</div><div class="v">0</div></div>
 </div>
 
-This is one connected story in three acts. First, a pair of critical PHP flaws that
-early reporting called hard to exploit, which our lab showed to be exploitable on
-default installations. Second, the malware attackers pushed through that hole within
-hours of disclosure, which we caught in the wild. Third, the crew behind it: their
-tools, their infrastructure, and a money trail on the blockchain that runs back to
-named exchanges.
-
-The full indicator list is in the [appendix](#appendix-indicators) and in
-[iocs.csv](iocs.csv). We name no individuals. Attribution is to a group, defined by its
-code, its infrastructure and its wallets.
-
 <div class="callout bad" markdown="1">
 
-**Patch now.** PHP 8.3.36 and later fix CVE-2026-109618 and CVE-2026-109619. If you run
-PHP with sessions enabled and cannot patch today, see
-[Detect the exploitation](#detect-the-exploitation).
+**Patch now.** PHP 8.3.36 and later fix CVE-2026-109618 and CVE-2026-109619. A further
+issue, CVE-2026-115560, is unpatched; its mechanism is withheld here. Indicators below are
+defanged; machine-readable lists are in [iocs.csv](iocs.csv), and the YARA rules are in
+[rules/](rules/potassium-all.yar).
 
 </div>
 
-## Act I: the exploit (PHP2Shell)
 
-### What the flaw is
+This is one connected story, told in three acts. First, a pair of critical PHP flaws that the industry initially called hard to exploit, and that our lab turned into working remote code execution across four independent chains, three CVEs, with one chain still unpatched. Second, the malware attackers pushed through that hole within hours of disclosure, which we caught in the wild. Third, the crew behind it: their tools, their infrastructure, and a money trail on the blockchain that, at one point, runs all the way back to a named exchange.
 
-CVE-2026-109618 and CVE-2026-109619 are use-after-free bugs in PHP's session
-upload-progress handling. When a request runs out of memory while PHP is still parsing
-it, PHP abandons the request without the normal clean-up and leaves stale pointers in
-its memory allocator. A follow-up request to the same worker then reads that corrupted
-memory before any application code runs. Both were patched in PHP 8.3.36 while already
-being exploited in the wild.
+Everything needed to act on this is in one file: the complete, machine-usable indicator list sits in the appendix at the end. We name no individuals. Our attribution is to a group, defined by its code, its infrastructure, and its wallets.
 
-### Why "hard to exploit" was wrong
+---
 
-Early public reporting said exploitation needed an unusually low memory limit
-(`memory_limit=8M`). Our lab reproduction showed that is not true. A stock installation
-with the default 128 MB limit can be driven out of memory by a request of a few hundred
-kilobytes, well inside the default upload size, because of how PHP builds its internal
-upload metadata. The attack traffic looks like ordinary form data, not a large or
-unusual payload.
+## Act I — The exploit: PHP2Shell (CVE-2026-109618 / CVE-2026-109619)
 
-Results from default Docker images:
 
-| Build | Result |
-|---|---|
-| PHP 8.3.35 (vulnerable) | Worker crashes in 14 of 15 test rounds, with the crash inside PHP's allocator |
-| PHP 8.3.36 (patched) | 0 crashes in 261 runs of identical traffic |
+### What the lab proved
 
-Follow-on lab work turned the crash into working remote code execution as the web
-server user on unpatched builds, with unauthenticated HTTP access only. We are not
-publishing the exploitation details.
+When two critical memory-corruption flaws in PHP were patched during active in-the-wild exploitation, early public reporting downplayed their real-world impact, claiming the exploit required an unusually low, non-standard memory_limit=8M.
 
-During the same work we identified a further, separate PHP session issue. It is in
-coordinated disclosure and is not described here.
+Our lab reproduction proved that premise wrong. By analyzing the patch's regression tests, we confirmed that stock PHP installations with default configurations (128M memory limit) are fully vulnerable via an input-amplification technique. A tiny 551 KB request can exhaust a 128 MB heap, corrupt internal allocator structures, and reliably crash or destabilize the worker process on the subsequent request.
 
-### What this means for defenders
+Because working exploit traffic looks like ordinary form data rather than a loud, oversized payload, only 6 of our 26 detection signatures fired on the real attack pair, while 19 of 26 triggered on benign traffic: a detection suite built against the wrong assumptions. We rebuilt and engine-validated the rules directly against the functional crashing traffic, correlating the two-stage sequence.
 
-- Treat any PHP 8.x below 8.3.36 that uses sessions as remotely exploitable, whatever
-  its memory settings.
-- Detection that looks for an oversized upload misses this attack. Look for the
-  behaviour instead (see [What to do](#what-to-do-about-it)).
+### Vulnerability reality: the amplification mechanism
 
-## Act II: the payload we caught in the wild
+The underlying bug is a use-after-free (UAF) in PHP's session upload-progress handler. When a request runs out of memory mid-parse, PHP triggers an internal longjmp that bypasses normal cleanup, abandoning dangling pointers in the Zend memory allocator (zend_mm_heap).
 
-Within hours of the patch, attackers were using this flaw to plant a second-stage bot.
-We obtained the sample. It turned out to be far more than a run-of-the-mill Mirai copy
-(Mirai being the widely copied botnet code that most Linux DDoS malware descends from).
+The fallacy of the 8 MB limit: Public exploit scripts were artificially constrained because they relied on raw payload volume to exhaust memory.
 
-**What it is.** A Linux DDoS bot: software that turns a compromised server into a
-foot soldier for knocking other sites offline. It does not spread on its own. It is
-placed onto servers through the PHP2Shell exploit. It is the newest build of a family
-that Nokia Deepfield documented in May 2026 under the name **potassium**, and the same
-binary the research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage,
-seen in the wild the day before.
+The 245x multiplier: Multipart body parts with an empty filename (filename="") bypass PHP's file-upload size checks entirely. However, PHP still builds full internal $_FILES metadata arrays for each one. By nesting field names, an attacker achieves an approximate 245x memory amplification.
+
+Real-world impact: A 551 KB request, well below the default post_max_size=8M, completely exhausts PHP's default 128 MB heap during request parsing.
+
+### The two-request attack sequence
+
+Request 1 (heap corruption): The attacker submits a session ID, upload progress field, one small valid file, and roughly 1,000 empty-filename fields. This forces an out-of-memory condition during parsing, leaving a dangling pointer in the worker's allocator.
+
+Request 2 (trigger): The attacker immediately replays the session ID without multipart data to the same worker. PHP attempts to read the corrupted heap allocation before executing any application code, triggering an immediate crash (e.g., zend_mm_heap corrupted).
+
+### Lab reproduction and validation
+
+We benchmarked the exploit chain across default Docker environments (php:8.3.35-apache vs. the patched 8.3.36 release):
+
+Vulnerable build (8.3.35): 14 segfaults across 15 test rounds (and 5 of 5 in tightly pinned single-worker runs). Core dumps placed the crash directly inside PHP's native memory allocator.
+
+Patched build (8.3.36): 0 crashes across 261 test runs using identical traffic, memory limits, and request volume.
+
+Key architecture finding: The session file on disk remains clean and uncorrupted; the damage is isolated entirely to the running Apache worker's memory space.
+
+### How we got here: investigation milestones
+
+Moving from an unstable public proof-of-concept to an accurate detection model took roughly 48 hours of iterative testing:
+
+Deconstructing the public PoC: The initial community script caused only worker deadlocks and session lock starvation (a denial of service), failing to trigger true memory corruption under default settings.
+
+Isolating configuration dependencies: Matrix testing showed that memory exhaustion behavior depended strictly on allocation ceilings rather than PHP version differences. Patched builds absorbed the hit and recovered cleanly, establishing our baseline control.
+
+Uncovering the real vector: Debugging revealed that the vendor's patch and its 21 regression tests contained the missing link: the empty-filename parser amplification.
+
+Validating the sequence: Replaying the two-request sequence alone without amplification failed across ~3,700 runs. Coupling the amplification in Request 1 with the stale session in Request 2 produced 100% reliable corruption on vulnerable workers.
+
+Evaluating exploitation headroom: While remote info-leaks and brute-force heap sprays proved unviable, heap-grooming via input unescaping remains an active research path to assess whether controlled execution is achievable beyond denial of service.
+
+### From crash to code execution: four demonstrated RCE chains
+
+Follow-on lab work moved from a crash to **working remote code execution**: four independent chains, each demonstrated end-to-end with a pcap showing `system()` running as www-data. The exploit requires only unauthenticated HTTP access; the payload looks like ordinary form data.
+
+The four chains span two distinct bug classes:
+
+**Memory-corruption chains (3), CVE-2026-109618 / CVE-2026-109619, fixed in PHP 8.3.36+:**
+
+- **Big-field OOM** (CVE-2026-109618): the amplified multipart request exhausts the heap; a second request reclaims the freed allocation with attacker data and pivots into `system()`.
+- **Filename OOM** (CVE-2026-109619): the empty-filename amplification variant, same corruption primitive, different trigger path.
+- **Unserialize dual-primitive** (CVE-2026-109618): combines the heap corruption with a crafted serialized payload planted in the session via upload-progress filenames; `php_var_unserialize` on the stale allocation instantiates an attacker-shaped object whose destructor runs the command.
+
+**Fourth chain (1), CVE-2026-115560, unpatched as of October 2026.** A separate issue that also needs an application framework to reach code execution; stock PHP alone is not affected. Its details are withheld from this public copy until a fix ships.
+
+All four chains were verified on default-config Apache/mod_php prefork workers: 0 crashes across 261 runs on patched builds (8.3.36+) using identical traffic.
+
+---
+
+### Lab notes: from crash to controlled reclaim (patched CVEs)
+
+These notes, written on 2026-10-22 before the chains above were finished, show the step that turned the crash into a usable primitive for CVE-2026-109618.
+
+Our follow-on lab work has sharpened how we are pursuing a working exploit. The unlock was to **aim rather than spray**: instead of flooding the second request with fields, we plant the controlled bytes in the first request's upload *filenames*, so PHP's upload-progress handler writes them into the session — and the second request's deserialization, which is exactly where the crash faults, then allocates them.
+
+- **The crash now lands on the real primitive, on demand.** Every run faults on a free-list pop inside PHP's allocator on the session-decode (`php_var_unserialize`) path — the exploitable site. Earlier attempts only reached harmless debug assertions.
+- **We can inject a structured object, not just noise.** An escaped quote in a `filename=` is unescaped by PHP into a real quote, so the filename smuggles the quotes a serialized payload needs; with the filename placed last, PHP's serializer closes an attacker-supplied `O:8:"stdClass"…` into a live, attacker-shaped object. That is controllable reclaim material, far more than a byte spray.
+
+**Detection rebuild.** Against the working attack, only one of our fifteen original detection rules fired. We rebuilt and engine-validated the suite against the crashing traffic: 28 Suricata rules and 8 Sigma rules that correlate the two-request sequence, with no false positives in testing.
+
+## Act II — The payload we caught in the wild
+
+Within hours of the patch, attackers were already using this exact flaw to plant a second-stage bot, the malware that lands once the exploit has opened the door. We obtained the sample, and it turned out to be far more than a run-of-the-mill Mirai knock-off (Mirai being the widely copied botnet code that most Linux DDoS malware descends from).
+
+**What it is.** A Linux DDoS bot: software that turns a compromised server into a foot soldier for knocking other sites offline. It does not spread on its own; it is placed onto servers through the PHP2Shell exploit above. It is the newest build of a family that Nokia Deepfield documented in May 2026 under the name **potassium**, and the same binary the research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage, seen in the wild the day before.
+
+**The sample, by the numbers.**
 
 | Field | Value |
 |---|---|
 | SHA-256 | `0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486` |
 | MD5 | `b61a098fc62a2c2696e196dca78da71a` |
 | File | ELF64 x86-64, statically linked, stripped, 179,632 bytes |
-| Detection at discovery | 4 of about 65 engines, heuristic only |
-| Delivered via | Loader fetched from `hxxp://92.118.112[.]100/nfs`, run as `./nfs php`; loader source `45.198.224[.]169` |
+| Detection at discovery | 4 of ~65 engines, heuristic only, effectively invisible |
+| Delivered via | loader fetched from `hxxp://92[.]118[.]112[.]100/nfs`, run as `./nfs php`; loader source `45[.]198[.]224[.]169` |
 
-**Why it stands out.** Ordinary Mirai copies leave their settings and tell-tale text in
-plain sight. This one encrypts everything: a 476-slot string table locked under
-ChaCha20, with even the cipher's own constant masked. Its link back to the operators
-uses modern cryptography (X25519 key exchange, ChaCha20-Poly1305). It can open a remote
-shell, hide its own process and update itself. It lies about where its control server
-is (see Act III). And the scanner classic Mirai uses to spread on its own has been
-removed: this build is placed deliberately by a loader rather than spreading like a
-worm.
+**Why it stands out.** Ordinary Mirai copies leave their settings and tell-tale text in plain sight. This one encrypts everything: a 476-slot string table locked under ChaCha20, with even the cipher's own constant masked. Its link back to the operators uses modern cryptography (X25519 key exchange, ChaCha20-Poly1305). It can open a remote shell for them, hide its own process from the system, and update itself. Most tellingly, it lies about where its control server is (more on that in Act III). And the scanning engine classic Mirai uses to spread on its own has been stripped out, the sign that this build is placed deliberately by a loader rather than spreading like a worm.
 
 ### The wider family and our confidence
 
-This sample is one build off a production line. We scored every related file in the
-CORD corpus and ran four detection rules back across a year of global malware
-submissions. Ranked by how sure we are:
+This sample is one build off a production line. We scored every related file in our own collection and ran four detection rules back across a year of global malware submissions. Here is what came back, ranked by how sure we are:
 
-- **Same operator, high confidence.** Two x86-64 sibling builds, `6f272c85365a…`
-  (2026-10-04) and `b58cf55ad3e6…` (2026-09-23), carry the same encrypted blockchain
-  settings and overlapping control-server lists once decrypted. This sample and
-  `6f272c85365a…` share two control-server hosts outright. Both build lines registered
-  their blockchain names through the same service and point at the same
-  operator-specific resolver.
-- **Same operator, likely.** Six ARM builds from September and October 2026. One of
-  them (`5420b2745e8d…`) was seen reaching the same control server as our sample.
-- **Same toolkit, operator unproven.** Three un-stripped "developer" builds that
-  shipped with their source-file names intact, plus two older ARM builds.
-- **Fresh finds (2026-10-22).** Our retrohunt surfaced 23 more in-the-wild builds:
-  six x86-64 and seventeen ARM, SuperH and x86, including versions bundled inside
-  Android app packages. Our four rules flagged all of them with no false alarms on
-  clean software.
+- **Same operator, high confidence.** Two x86-64 "sibling" builds, `6f272c85365a…` (2026-10-04) and `b58cf55ad3e6…` (2026-09-23), carry the same encrypted blockchain settings and overlapping control-server lists once decrypted. This sample and `6f272c85365a…` share two of the very same control-server hosts outright. The blockchain seals it: both build lines registered their names through the same service and point at the same operator-specific resolver, tying them together on a public ledger.
+- **Same operator, likely.** Six ARM builds from September and October 2026, one of which (`5420b2745e8d…`) was seen reaching the exact same control server as our sample.
+- **Same toolkit, operator unproven.** Three un-stripped "developer" builds that accidentally shipped with their source-file names intact, revealing the project's internal module layout, plus two older ARM builds.
+- **Fresh finds (2026-10-22).** Our retrohunt surfaced 23 more in-the-wild builds not previously in our corpus: six x86-64 and seventeen ARM/SuperH/x86, including versions bundled inside Android app packages. Our four detection rules flagged all of them with zero false alarms against clean software.
 
-This is an actively maintained, multi-platform family, from Linux servers to Android
-devices.
+In short: this is an actively maintained, multi-platform family, from Linux servers to Android devices, not a one-off.
 
-## Act III: the operator
+---
 
-The crew is careful, but careful people are consistent, and consistency makes a pattern.
+## Act III — The operator
+
+The crew is careful, but careful people are consistent, and consistency makes a pattern. The pattern led us a long way.
 
 ### Their infrastructure
 
-They rotate their control-server domains on a schedule: a new `.st` domain every few
-weeks (with one two-month gap over the summer), bought through two small resellers,
-each dressed up with a legitimate-looking web page, with the real control servers on
-short subdomains. Their hosting spans Estonia, France, Switzerland, Russia, Armenia and
-DigitalOcean. New infrastructure typically goes live about a week before a new build
-ships.
+They rotate their control-server domains like clockwork: a new `.st` domain every few weeks (with one two-month lull over the summer), bought through two small resellers, each dressed up with a legitimate-looking web page, with the real control servers tucked away on short subdomains. Their hosting spans Estonia, France, Switzerland, Russia, Armenia and DigitalOcean. New infrastructure typically goes live about a week before a new malware build ships, a rhythm regular enough to track.
 
 ### The sleight of hand: decoy DNS
 
-When the bot looks up its control domain, it never connects to the address it gets
-back. It scrambles that address first. Older builds swap the two halves. This build
-keeps the first number and rotates the rest. The addresses anyone can see in DNS point
-at university, military and ordinary consumer networks: innocent bystanders.
-**Blocking the published address does nothing, and would hurt the wrong people.** We
-reversed the scramble and recovered the real servers, including the live one at
-`134.199.154[.]64` (DigitalOcean), plus eight more behind the group's other hosts.
+When the bot looks up its control domain, it never connects to the address it gets back. It **scrambles** that address first: older builds swap the two halves; this build keeps the first number and rotates the rest, then connects to the result. The addresses anyone can see point at university, military and ordinary consumer networks: innocent bystanders. **Blocking the published address does nothing, and would hurt the wrong people.** We worked the scramble backwards and recovered the real servers, including the live one at `134[.]199[.]154[.]64` (DigitalOcean), plus eight more behind the group's other hosts, two of them this sample's own second domain.
 
 ### A C2 fallback on the blockchain
 
-The configuration holds a backup plan. If the domains are ever taken down, the bot can
-look up its control-server address on the **Ethereum blockchain** instead, a public
-ledger that no registrar or hosting provider can switch off. It reads a text record
-labelled `ip` from three ENS names: `2sexy4u[.]eth` and `sushiconsumer[.]eth` (this
-sample) and `catswithhatslolksjhakf[.]eth` (the siblings), through the public ENS
-registry and one operator-specific resolver
-(`0xf29100983e058b709f3d539b0c765937b804ac15`). This build does not use it yet: the
-feature is built but not switched on. The values parked there appear to be scrambled
-with the same decoy trick. Unwinding three of the October values with this build's
-scramble lands them in the same DigitalOcean range as the live server.
+Buried in the configuration is something new: a backup plan. If the domains are ever taken down, the bot can look up its control-server address on the **Ethereum blockchain** instead, a public ledger that no registrar or hosting provider can switch off. It is wired to read a text record (labelled `ip`) from three blockchain names: `2sexy4u[.]eth` and `sushiconsumer[.]eth` (this sample) and `catswithhatslolksjhakf[.]eth` (the siblings), through a fixed registry (`0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e`) and resolver (`0xf29100983e058b709f3d539b0c765937b804ac15`). This build does not use it yet; the feature is built and tested but not switched on. The values parked there appear to be scrambled with the same decoy trick: unwinding three of the October values with this build's scramble lands them in the same DigitalOcean range as the live server. Read it as a glimpse of where the family is heading: a fallback that no domain takedown can touch.
 
 ### Following the money
 
-Because the blockchain is public, we could read who owns those names and who paid for
-them. This is the strongest thread in the investigation.
+Because the blockchain is public, we could read who owns those names and who paid for them. This is the strongest thread in the whole investigation:
 
-- **Two wallets, one playbook.** The sample's two names sit in one wallet
-  (`0x32ab9ef9…da7b`). The siblings' name sits in a second (`0xd5e34876…f995`). Both
-  registered through the same service and point at the same resolver: an on-chain tie
-  between the two build lines, on top of the control-server hosts they share in code.
-- **The second wallet is a smart contract**, an account-abstraction setup that keeps
-  the controlling key off the public ledger. It has been active since 2025, so it was
-  held in reserve rather than created for this campaign.
-- **Both wallets were funded through throwaway relay wallets**, used once and
-  discarded to break the trail. No mixer was used. The one anonymity step is a single
-  no-KYC swap (ChangeNOW) on one branch, so the trail is bent, not cut.
-- **Both branches reach exchanges that know their customers.** The relay that seeded
-  the smart-contract wallet was funded on 2025-06-10 by a **Coinbase** hot wallet
-  (`0xb5d85cbf…`). Coinbase verifies its account holders, so that withdrawal ties to an
-  account the exchange can identify under legal process.
-- **The other branch** runs through a busy shared cash-movement service. Money enters
-  it from a **KuCoin** wallet (`0x45300136…`) and leaves to a **Binance** deposit
-  address (`0x16f59CEf…`), with one detour through **ChangeNOW** (`0x3f3Ee0a9…`).
-  Because the service moves money for many unrelated people, KuCoin and Binance here are
-  leads to confirm, not proof.
-
-Every branch ends either at an exchange that keeps customer records or at the no-KYC
-swap. Naming anyone from here means legal process at those exchanges. Attribution stays
-with the operator group.
+- **Two wallets, one playbook.** The sample's two blockchain names sit in one wallet (`0x32ab9ef9…da7b`); the siblings' name sits in a second (`0xd5e34876…f995`). Both registered through the same service and point at the same operator-specific resolver, an on-chain tie between the two build lines, on top of the control-server hosts they already share in their code.
+- **That second wallet is a smart contract**, an account-abstraction setup that keeps the controlling key off the public ledger. It has been active since 2025 (see the wallet appendix), so it is a wallet held in reserve rather than spun up for this campaign.
+- **Both wallets were funded through throwaway relay wallets**: pass the money through once, then discard the wallet. A pattern meant to break the trail. They used no mixer like Tornado Cash; the one anonymity step is a single no-KYC swap (ChangeNOW) on one branch, so the trail is bent, not cut.
+- **And both branches of that trail now reach exchanges that know their customers.** The relay that seeded the smart-contract wallet was itself funded, on 2025-06-10, by a **Coinbase** hot wallet (`0xb5d85cbf…`). Coinbase is a KYC exchange: it verifies who its account holders are. That withdrawal is tied to a real, identifiable account the exchange can name under legal process. This is the single most promising lead toward the people behind the group.
+- **The other wallet's trail, which we had stopped one step short of, is now fully followed (26 October).** It runs through a busy, shared cash-movement service on the blockchain. Money comes into that service from a **KuCoin** exchange wallet (`0x45300136…`) and leaves it to a **Binance** deposit address (`0x16f59CEf…`), with one deliberate detour through **ChangeNOW** (`0x3f3Ee0a9…`), a swap service that asks for no identity. Because that service moves money for many unrelated people, KuCoin and Binance here are leads to confirm, not proof on their own. The upshot: every branch of the money ends either at an exchange that keeps customer records (Coinbase, KuCoin, Binance) or at the no-identity swap the operator used to break the chain. From here on, naming anyone means going to those exchanges with legal process, **Coinbase first**. Attribution stays with the operator group; no individual is named.
 
 ### What their tradecraft tells us
 
-They are competent and deliberate: encrypted builds, rotating infrastructure, decoy
-addressing, disposable funding wallets, a blockchain fallback waiting in the wings, and
-wallet keys kept off the public record. The discipline is uneven, though. Developer
-builds slipped out with their internal file names, and the money trail touches a named
-exchange. Two soft signals, held loosely, point toward a European operator: their
-blockchain activity clusters between 06:00 and 14:00 UTC, and Deepfield observed
-Dutch-language content in an earlier campaign.
+They are competent and deliberate: encrypted builds, rotating infrastructure, decoy addressing, disposable funding wallets, a blockchain fallback waiting in the wings, and wallet keys kept off the public record. But the discipline is uneven. They let developer builds slip out with their internal file names intact, and the money trail still touches a named exchange. Two soft signals, which we hold loosely, point toward a European operator: their blockchain activity clusters in a 06:00–14:00 UTC window (European working hours), and Deepfield observed Dutch-language content in an earlier campaign.
+
+---
 
 ## What to do about it
 
 ### Detect the exploitation
 
-- Upgrade to PHP 8.3.36 or later.
-- Alert on bursts of `multipart/form-data` POSTs carrying `PHP_SESSION_UPLOAD_PROGRESS`
-  to pages that do not accept uploads.
-- Alert on PHP workers that run out of memory and crash (SIGSEGV) in bursts.
-- Alert on any web-server worker that starts a shell and then downloads a file.
+- Deploy the rebuilt detection rules validated against the real crashing traffic. The original suite was ineffective: only 6 of 26 signatures fired on the actual attack pair.
+- Watch for three things: bursts of `multipart/form-data` POSTs carrying `PHP_SESSION_UPLOAD_PROGRESS` aimed at pages that do not accept uploads; PHP workers running out of memory and crashing (SIGSEGV) in bursts; and any web worker that opens a shell and then fetches a payload.
 
 ### Detect the malware
 
-Four YARA rules cover the family across architectures with no hits on clean software
-(16,686 ELF samples, 4,699 Linux system binaries and 1,542 Windows files tested):
-
-| Rule | Scope |
-|---|---|
-| [`elf_mirai_ext_x64_build_family`](rules/elf_mirai_ext_x64_build_family.yar) | x86-64 builds from this code generator (tight) |
-| [`elf_mirai_ext_x64_chacha_lineage`](rules/elf_mirai_ext_x64_chacha_lineage.yar) | x86-64 builds with the lineage's ChaCha20 routine |
-| [`elf_mirai_ext_multiarch_literals`](rules/elf_mirai_ext_multiarch_literals.yar) | Any architecture, by literal-pool constants |
-| [`elf_masked_chacha_constant_survey`](rules/elf_masked_chacha_constant_survey.yar) | Wide survey rule for triage |
-
-All four in one file: [potassium-all.yar](rules/potassium-all.yar).
+- Four YARA rules cover the family across architectures with **zero hits on clean software** (`elf_mirai_ext_x64_build_family`, `elf_mirai_ext_x64_chacha_lineage`, `elf_mirai_ext_multiarch_literals`, and a survey rule for triage).
 
 ### Block and hunt the infrastructure
 
-- Block the **real, recovered** control servers in the appendix, never the published
-  DNS answers, which belong to bystanders.
-- On Linux hosts, look for a loopback listener on TCP port 1234, a hidden directory at
-  `/var/tmp/.cache/sysd`, files at `/tmp/.manta` or `/tmp/.xwiki`, and a process whose
-  `/proc` entry is masked by another.
-- Watch the three ENS names for record changes (a read-only query), watch for new `.st`
-  domains from the same two resellers, and pivot on the relay wallets.
+- Block the **real, recovered** control servers listed in the appendix, never the published decoy addresses, which belong to bystanders.
+- On hosts, look for a loopback listener on TCP port 1234, a hidden directory at `/var/tmp/.cache/sysd`, `/tmp/.manta` or `/tmp/.xwiki` drops, and a process whose `/proc` entry has been masked by another.
+- Proactively, watch the three blockchain names for changes (a read-only query), watch for new `.st` domains from the same two resellers, and pivot on the relay wallets to find more of the operator's holdings.
 
-## Appendix: indicators
 
-Collected 2026-10-22 from the decrypted string store of the sample, the decoded stores of
-the two x86-64 siblings, VirusTotal relationships and passive DNS, and read-only Ethereum
-lookups, with the money trail extended on 2026-10-26. Hosts, IPs and URLs are defanged.
-Published DNS answers of the C2 hosts are decoys that point at bystanders and are left
-out on purpose.
+## Appendix — full indicators
 
-### A1. The sample
+Collected 2026-10-22 from the decrypted store of the sample, the decoded stores of the two x86-64 siblings, VirusTotal relationships and passive DNS, and read-only Ethereum mainnet lookups. Published DNS answers of the C2 hosts are decoys (the address-rewriting trick described in Act III) and are listed apart; do not block them.
+
+#### A1. The sample
 
 | hash | value |
 |---|---|
@@ -253,8 +205,7 @@ out on purpose.
 | sha256 | `0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486` |
 | size | 179632 bytes |
 
-
-### A2. Hostnames in the sample's string store
+#### A2. Hostnames in the sample's string store
 
 | slot | value | role |
 |---|---|---|
@@ -278,8 +229,21 @@ out on purpose.
 | 0x113 | `hackattackkaboom[.]botlesscucks[.]st` | C2 host |
 | 0x114 | `hik[.]gettingheadfromduckysmom[.]st` | C2 host |
 
+#### A3. ENS resolution recipe (store slots 11-20)
 
-### A4. Ethereum mainnet state of the ENS names (read-only lookups, 2026-10-22)
+| slot | value |
+|---|---|
+| 11 | `ethereum-rpc.publicnode.com` |
+| 12 | `eth.drpc.org` |
+| 13 | `1rpc.io` |
+| 14 | `eth-mainnet.blockreq.com` |
+| 15 | `ethereum-public.nodies.app` |
+| 16 | `rpc.mevblocker.io` |
+| 18 | `/eth` |
+| 19 | `/v1/rpc/public` |
+| 20 | `00000000000C2E074eC69A0dFb2997BA6C7d2e1e` |
+
+#### A4. Ethereum mainnet state of the ENS names (read-only lookups, 2026-10-22)
 
 ENS registry `0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e`; selectors `resolver(bytes32)` = `0x0178b8bf`, `text(bytes32,string)` = `0x59d1d43c`; text key `ip`.
 
@@ -293,8 +257,7 @@ Record history (Blockscout log API, read once on 2026-10-22; the values of the s
 
 Public RPC endpoints in the store (the bot would use these; they are legitimate providers and not blockable indicators): `ethereum.publicnode.com`, `ethereum-rpc.publicnode.com`, `eth.drpc.org`, `1rpc.io`, `eth-mainnet.blockreq.com`, `ethereum-public.nodies.app`, `rpc.mevblocker.io`.
 
-
-### A5. Ports, process names, paths, resolvers
+#### A5. Ports, process names, paths, resolvers
 
 - C2 ports (random pick from 14): `50217, 50341, 50488, 50613, 50792, 50904, 51127, 51289, 51456, 51603, 51871, 52134, 52398, 52645`
 - loopback single-instance lock: TCP `1234` (retry counter 0x1a); stock Mirai uses 48101
@@ -306,8 +269,7 @@ Public RPC endpoints in the store (the bot would use these; they are legitimate 
 - additional drop paths seen in retrohunt matches (2026-10-22): `/tmp/.manta`, `/tmp/.xwiki`
 - embedded DNS resolvers (18, used for the bot's own lookups; legitimate public resolvers): `8[.]8[.]8[.]8`, `8[.]8[.]4[.]4`, `1[.]1[.]1[.]1`, `1[.]0[.]0[.]1`, `208[.]67[.]222[.]222`, `208[.]67[.]220[.]220`, `9[.]9[.]9[.]9`, `149[.]112[.]112[.]112`, `94[.]140[.]14[.]14`, `94[.]140[.]15[.]15`, `114[.]114[.]114[.]114`, `114[.]114[.]115[.]115`, `223[.]5[.]5[.]5`, `223[.]6[.]6[.]6`, `119[.]29[.]29[.]29`, `180[.]76[.]76[.]76`, `64[.]6[.]64[.]6`, `64[.]6[.]65[.]6`
 
-
-### A6. Domains
+#### A6. Domains
 
 | domain | kind | registered | registrar | VT malicious | notes |
 |---|---|---|---|---|---|
@@ -328,8 +290,7 @@ Public RPC endpoints in the store (the bot would use these; they are legitimate 
 
 Siblings' C2 hosts by store slot: 6f272c85365a: `dvrs[.]botlesscucks[.]st`, `dvrs2[.]botlesscucks[.]st`, `dvrs4[.]botlesscucks[.]st`, `hackattackkaboom[.]botlesscucks[.]st`, `hik[.]gettingheadfromduckysmom[.]st`; b58cf55ad3e6: `dvrs[.]botlesscucks[.]st`, `dvrs2[.]botlesscucks[.]st`, `dvrs4[.]botlesscucks[.]st`
 
-
-### A7. Real C2 and hosting addresses
+#### A7. Real C2 and hosting addresses
 
 | address | AS | country | role | evidence |
 |---|---|---|---|---|
@@ -345,12 +306,131 @@ Siblings' C2 hosts by store slot: 6f272c85365a: `dvrs[.]botlesscucks[.]st`, `dvr
 | `134[.]199[.]154[.]64` | DigitalOcean (per ELLIO) | US | real C2 behind `thunder[.]godofthunder[.]st` (sample) | decoy answer `134[.]154[.]64[.]199` on 2026-10-21, transform rotate3; contacted by 1 relatives |
 | `217[.]60[.]103[.]135` | 209373 Swissnet LLC | CH | contacted by 2+ core builds (sandbox) | 40 communicating files on VirusTotal, 17 malicious votes |
 | `1[.]122[.]168[.]192` | 1221 Telstra Limited | AU | contacted by 2+ core builds (sandbox) | 27 communicating files on VirusTotal, 0 malicious votes |
+| `14[.]31[.]212[.]192` | 4134 Chinanet | CN | passive-DNS answer (may be a decoy; see A8) | 7 communicating files on VirusTotal, 0 malicious votes |
+| `190[.]185[.]130[.]49` | 27983 Red Intercable Digital S.A. | AR | passive-DNS answer (may be a decoy; see A8) | 7 communicating files on VirusTotal, 0 malicious votes |
+| `2[.]75[.]5[.]181` | 29355 Kcell JSC | KZ | passive-DNS answer (may be a decoy; see A8) | 5 communicating files on VirusTotal, 0 malicious votes |
+| `164[.]68[.]127[.]227` | 51167 Contabo GmbH | FR | passive-DNS answer (may be a decoy; see A8) | 3 communicating files on VirusTotal, 0 malicious votes |
+| `187[.]112[.]132[.]243` | 18881 TELEFONICA BRASIL S.A | BR | passive-DNS answer (may be a decoy; see A8) | 3 communicating files on VirusTotal, 1 malicious votes |
+| `187[.]133[.]132[.]243` | 8151 UNINET | MX | passive-DNS answer (may be a decoy; see A8) | 3 communicating files on VirusTotal, 0 malicious votes |
+| `134[.]154[.]64[.]199` | 2152 CENIC | US | passive-DNS answer (may be a decoy; see A8) | 2 communicating files on VirusTotal, 0 malicious votes |
+| `2[.]72[.]5[.]181` | 29355 Kcell JSC | KZ | passive-DNS answer (may be a decoy; see A8) | 2 communicating files on VirusTotal, 0 malicious votes |
+| `109[.]10[.]145[.]249` | 15557 Societe Francaise Du Radiotelephone - SFR SA | FR | passive-DNS answer (may be a decoy; see A8) | 1 communicating files on VirusTotal, 0 malicious votes |
+| `116[.]130[.]147[.]45` | 4837 CHINA UNICOM China169 Backbone | CN | passive-DNS answer (may be a decoy; see A8) | 1 communicating files on VirusTotal, 0 malicious votes |
+| `117[.]55[.]202[.]115` | 61254 ESTOXY OU | EE | passive-DNS answer (may be a decoy; see A8) | 1 communicating files on VirusTotal, 2 malicious votes |
+| `203[.]219[.]204[.]76` | 7545 TPG Telecom Limited | AU | passive-DNS answer (may be a decoy; see A8) | 1 communicating files on VirusTotal, 0 malicious votes |
+| `30[.]194[.]157[.]173` | 749 United States Department of Defense (DoD) | US | passive-DNS answer (may be a decoy; see A8) | 1 communicating files on VirusTotal, 0 malicious votes |
+| `113[.]104[.]89[.]23` | 4134 Chinanet | CN | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `116[.]7[.]147[.]45` | 4134 Chinanet | CN | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `131[.]59[.]78[.]159` | 56 United States Department of Defense (DoD) | US | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `139[.]103[.]78[.]153` | 611 NB-PEI Educational Computer Network | CA | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `192[.]88[.]155[.]2` | 63407 Terracon Consultants, Inc. | US | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `2[.]8[.]5[.]181` | 3215 Orange | FR | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `207[.]101[.]93[.]152` | 2828 Verizon Business | US | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `218[.]95[.]130[.]49` | 4134 Chinanet | CN | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `31[.]186[.]45[.]142` | 44473 S.T. S.r.l. | IT | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]108[.]89[.]32` | 36947 Telecom Algeria | DZ | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]109[.]89[.]32` | 36947 Telecom Algeria | DZ | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]111[.]89[.]32` | 36947 Telecom Algeria | DZ | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]114[.]89[.]32` | 12091 MTN SA | ZA | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]117[.]89[.]32` | 12091 MTN SA | ZA | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
+| `41[.]128[.]89[.]32` | 24863 Link Egypt (Link.NET) | EG | passive-DNS answer (may be a decoy; see A8) | 0 communicating files on VirusTotal, 0 malicious votes |
 | `49[.]6[.]172[.]233` | not announced | | ENS `ip` record value of `catswithhatslolksjhakf[.]eth` | current on-chain value; no sample seen contacting it |
 
 Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154[.]64` (DigitalOcean, reached through the rotation from the decoy `134[.]154[.]64[.]199`), update host `117[.]55[.]202[.]115`, staging host `92[.]118[.]112[.]100` (AS215540) serving `hxxp://92[.]118[.]112[.]100/nfs`, loader source `45[.]198[.]224[.]169`. Of these, the C2 address appears among the contacted addresses of our relatives and the update host is the EE address above.
 
+#### A8. Decoy DNS answers (do not block)
 
-### A9. URLs
+| host | date | published answer | half-swap candidate | rotation candidate |
+|---|---|---|---|---|
+| `abuse[.]st` | 2026-05-30 | `164[.]68[.]127[.]227` | `127[.]227[.]164[.]68` | `164[.]227[.]68[.]127` |
+| `botlesscucks[.]st` | 2026-05-14 | `164[.]68[.]127[.]227` | `127[.]227[.]164[.]68` | `164[.]227[.]68[.]127` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-16 | `41[.]128[.]89[.]32` | `89[.]32[.]41[.]128` | `41[.]32[.]128[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]111[.]89[.]32` | `89[.]32[.]41[.]111` | `41[.]32[.]111[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]63[.]89[.]32` | `89[.]32[.]41[.]63` | `41[.]32[.]63[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]114[.]89[.]32` | `89[.]32[.]41[.]114` | `41[.]32[.]114[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]59[.]89[.]32` | `89[.]32[.]41[.]59` | `41[.]32[.]59[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]108[.]89[.]32` | `89[.]32[.]41[.]108` | `41[.]32[.]108[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]117[.]89[.]32` | `89[.]32[.]41[.]117` | `41[.]32[.]117[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-08 | `41[.]146[.]89[.]32` | `89[.]32[.]41[.]146` | `41[.]32[.]146[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-07 | `41[.]109[.]89[.]32` | `89[.]32[.]41[.]109` | `41[.]32[.]109[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-06 | `41[.]49[.]89[.]32` | `89[.]32[.]41[.]49` | `41[.]32[.]49[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-06 | `192[.]88[.]155[.]2` | `155[.]2[.]192[.]88` | `192[.]2[.]88[.]155` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `62[.]30[.]62[.]133` | `62[.]133[.]62[.]30` | `62[.]133[.]30[.]62` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `109[.]10[.]145[.]249` | `145[.]249[.]109[.]10` | `109[.]249[.]10[.]145` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `84[.]98[.]89[.]185` | `89[.]185[.]84[.]98` | `84[.]185[.]98[.]89` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `67[.]244[.]138[.]124` | `138[.]124[.]67[.]244` | `67[.]124[.]244[.]138` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `116[.]130[.]147[.]45` | `147[.]45[.]116[.]130` | `116[.]45[.]130[.]147` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `67[.]16[.]138[.]124` | `138[.]124[.]67[.]16` | `67[.]124[.]16[.]138` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `67[.]60[.]138[.]124` | `138[.]124[.]67[.]60` | `67[.]124[.]60[.]138` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `187[.]112[.]132[.]243` | `132[.]243[.]187[.]112` | `187[.]243[.]112[.]132` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-04 | `187[.]133[.]132[.]243` | `132[.]243[.]187[.]133` | `187[.]243[.]133[.]132` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-02 | `2[.]75[.]5[.]181` | `5[.]181[.]2[.]75` | `2[.]181[.]75[.]5` |
+| `dvrs[.]botlesscucks[.]st` | 2026-10-01 | `2[.]72[.]5[.]181` | `5[.]181[.]2[.]72` | `2[.]181[.]72[.]5` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-25 | `14[.]31[.]212[.]192` | `212[.]192[.]14[.]31` | `14[.]192[.]31[.]212` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-23 | `233[.]131[.]45[.]95` | `45[.]95[.]233[.]131` | `233[.]95[.]131[.]45` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-22 | `190[.]185[.]130[.]49` | `130[.]49[.]190[.]185` | `190[.]49[.]185[.]130` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-20 | `116[.]7[.]147[.]45` | `147[.]45[.]116[.]7` | `116[.]45[.]7[.]147` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-12 | `240[.]126[.]157[.]22` | `157[.]22[.]240[.]126` | `240[.]22[.]126[.]157` |
+| `dvrs[.]botlesscucks[.]st` | 2026-09-09 | `30[.]194[.]157[.]173` | `157[.]173[.]30[.]194` | `30[.]173[.]194[.]157` |
+| `dvrs2[.]botlesscucks[.]st` | 2026-10-07 | `41[.]59[.]89[.]32` | `89[.]32[.]41[.]59` | `41[.]32[.]59[.]89` |
+| `dvrs2[.]botlesscucks[.]st` | 2026-10-07 | `41[.]63[.]89[.]32` | `89[.]32[.]41[.]63` | `41[.]32[.]63[.]89` |
+| `dvrs2[.]botlesscucks[.]st` | 2026-10-06 | `41[.]49[.]89[.]32` | `89[.]32[.]41[.]49` | `41[.]32[.]49[.]89` |
+| `gettingheadfromduckysmom[.]st` | 2026-09-29 | `164[.]68[.]127[.]227` | `127[.]227[.]164[.]68` | `164[.]227[.]68[.]127` |
+| `godofthunder[.]st` | 2026-10-12 | `164[.]68[.]127[.]227` | `127[.]227[.]164[.]68` | `164[.]227[.]68[.]127` |
+| `hackattackkaboom[.]botlesscucks[.]st` | 2026-06-05 | `117[.]55[.]202[.]115` | `202[.]115[.]117[.]55` | `117[.]115[.]55[.]202` |
+| `hackattackkaboom[.]botlesscucks[.]st` | 2026-05-20 | `45[.]153[.]34[.]26` | `34[.]26[.]45[.]153` | `45[.]26[.]153[.]34` |
+| `hik[.]gettingheadfromduckysmom[.]st` | 2026-10-19 | `224[.]124[.]45[.]198` | `45[.]198[.]224[.]124` | `224[.]198[.]124[.]45` |
+| `hik[.]gettingheadfromduckysmom[.]st` | 2026-10-17 | `224[.]123[.]45[.]198` | `45[.]198[.]224[.]123` | `224[.]198[.]123[.]45` |
+| `hik[.]gettingheadfromduckysmom[.]st` | 2026-10-16 | `203[.]219[.]204[.]76` | `204[.]76[.]203[.]219` | `203[.]76[.]219[.]204` |
+| `hik[.]gettingheadfromduckysmom[.]st` | 2026-10-02 | `45[.]198[.]224[.]124` | `224[.]124[.]45[.]198` | `45[.]124[.]198[.]224` |
+| `hik[.]gettingheadfromduckysmom[.]st` | 2026-10-02 | `45[.]198[.]224[.]123` | `224[.]123[.]45[.]198` | `45[.]123[.]198[.]224` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-19 | `19[.]146[.]31[.]56` | `31[.]56[.]19[.]146` | `19[.]56[.]146[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-17 | `19[.]149[.]31[.]56` | `31[.]56[.]19[.]149` | `19[.]56[.]149[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-17 | `19[.]142[.]31[.]56` | `31[.]56[.]19[.]142` | `19[.]56[.]142[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-17 | `19[.]141[.]31[.]56` | `31[.]56[.]19[.]141` | `19[.]56[.]141[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-16 | `19[.]144[.]31[.]56` | `31[.]56[.]19[.]144` | `19[.]56[.]144[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-16 | `19[.]147[.]31[.]56` | `31[.]56[.]19[.]147` | `19[.]56[.]147[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-16 | `19[.]143[.]31[.]56` | `31[.]56[.]19[.]143` | `19[.]56[.]143[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-10 | `19[.]111[.]31[.]56` | `31[.]56[.]19[.]111` | `19[.]56[.]111[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-07 | `113[.]104[.]89[.]23` | `89[.]23[.]113[.]104` | `113[.]23[.]104[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-07 | `19[.]70[.]31[.]56` | `31[.]56[.]19[.]70` | `19[.]56[.]70[.]31` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-07 | `41[.]19[.]89[.]32` | `89[.]32[.]41[.]19` | `41[.]32[.]19[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-07 | `41[.]43[.]89[.]32` | `89[.]32[.]41[.]43` | `41[.]32[.]43[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-07 | `232[.]146[.]45[.]95` | `45[.]95[.]232[.]146` | `232[.]95[.]146[.]45` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-06 | `82[.]70[.]89[.]185` | `89[.]185[.]82[.]70` | `82[.]185[.]70[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-06 | `69[.]144[.]87[.]251` | `87[.]251[.]69[.]144` | `69[.]251[.]144[.]87` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-06 | `69[.]145[.]87[.]251` | `87[.]251[.]69[.]145` | `69[.]251[.]145[.]87` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-06 | `69[.]166[.]87[.]251` | `87[.]251[.]69[.]166` | `69[.]251[.]166[.]87` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-05 | `31[.]186[.]45[.]142` | `45[.]142[.]31[.]186` | `31[.]142[.]186[.]45` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-04 | `68[.]31[.]45[.]155` | `45[.]155[.]68[.]31` | `68[.]155[.]31[.]45` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-04 | `2[.]8[.]5[.]181` | `5[.]181[.]2[.]8` | `2[.]181[.]8[.]5` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-10-03 | `69[.]165[.]87[.]251` | `87[.]251[.]69[.]165` | `69[.]251[.]165[.]87` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-09-24 | `82[.]39[.]89[.]185` | `89[.]185[.]82[.]39` | `82[.]185[.]39[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-09-23 | `82[.]37[.]89[.]185` | `89[.]185[.]82[.]37` | `82[.]185[.]37[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-09-22 | `82[.]38[.]89[.]185` | `89[.]185[.]82[.]38` | `82[.]185[.]38[.]89` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-30 | `103[.]25[.]217[.]60` | `217[.]60[.]103[.]25` | `103[.]60[.]25[.]217` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-18 | `218[.]95[.]130[.]49` | `130[.]49[.]218[.]95` | `218[.]49[.]95[.]130` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-12 | `131[.]59[.]78[.]159` | `78[.]159[.]131[.]59` | `131[.]159[.]59[.]78` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-12 | `207[.]101[.]93[.]152` | `93[.]152[.]207[.]101` | `207[.]152[.]101[.]93` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `139[.]103[.]78[.]153` | `78[.]153[.]139[.]103` | `139[.]153[.]103[.]78` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `62[.]8[.]138[.]124` | `138[.]124[.]62[.]8` | `62[.]124[.]8[.]138` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `2[.]220[.]5[.]181` | `5[.]181[.]2[.]220` | `2[.]181[.]220[.]5` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `2[.]223[.]5[.]181` | `5[.]181[.]2[.]223` | `2[.]181[.]223[.]5` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `240[.]194[.]157[.]22` | `157[.]22[.]240[.]194` | `240[.]22[.]194[.]157` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `241[.]124[.]157[.]22` | `157[.]22[.]241[.]124` | `241[.]22[.]124[.]157` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `240[.]126[.]157[.]22` | `157[.]22[.]240[.]126` | `240[.]22[.]126[.]157` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `241[.]125[.]157[.]22` | `157[.]22[.]241[.]125` | `241[.]22[.]125[.]157` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-08-09 | `246[.]5[.]77[.]83` | `77[.]83[.]246[.]5` | `246[.]83[.]5[.]77` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-07-31 | `53[.]203[.]178[.]16` | `178[.]16[.]53[.]203` | `53[.]16[.]203[.]178` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-07-26 | `70[.]147[.]154[.]90` | `154[.]90[.]70[.]147` | `70[.]90[.]147[.]154` |
+| `ijustgetsonervy[.]potassium[.]st` | 2026-07-26 | `224[.]24[.]45[.]198` | `45[.]198[.]224[.]24` | `224[.]198[.]24[.]45` |
+| `iloveboats[.]st` | 2026-08-08 | `94[.]154[.]43[.]60` | `43[.]60[.]94[.]154` | `94[.]60[.]154[.]43` |
+| `iloveboats[.]st` | 2026-08-04 | `94[.]154[.]43[.]158` | `43[.]158[.]94[.]154` | `94[.]158[.]154[.]43` |
+| `potassium[.]st` | 2026-06-06 | `164[.]68[.]127[.]227` | `127[.]227[.]164[.]68` | `164[.]227[.]68[.]127` |
+| `thunder[.]godofthunder[.]st` | 2026-10-21 | `134[.]154[.]64[.]199` | `64[.]199[.]134[.]154` | `134[.]199[.]154[.]64` |
+| `urlhaus[.]abuse[.]st` | 2026-07-28 | `252[.]153[.]193[.]233` | `193[.]233[.]252[.]153` | `252[.]233[.]153[.]193` |
+
+#### A9. URLs
 
 | url | source |
 |---|---|
@@ -458,8 +538,7 @@ Published by ELLIO (2026-10-22) for the same sample: C2 address `134[.]199[.]154
 | `hxxps://www[.]youareall[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 | `hxxps://youareall[.]botlesscucks[.]st/` | URL under botlesscucks.st |
 
-
-### A10. Execution parents and files tied to the infrastructure
+#### A10. Execution parents and files tied to the infrastructure
 
 Execution parents (droppers and scripts that ran a relative):
 
@@ -494,9 +573,93 @@ Execution parents (droppers and scripts that ran a relative):
 | `f7724e6386bd8c3ef54bcd8b093ab7b40af8879ee3ec8b5fbd9a36e966790873` | f7724e6386bd |
 | `fcbe8dd8a0180128d705bbe6b6c2a5809997d5c317bffe30674b7753e5a6d370` | fcbe8dd8a018 |
 
-The 79 further files that communicate with the group's domains or hosting are listed in [iocs.csv](iocs.csv).
+Files not in the corpus that communicate with the group's domains or real hosting (79):
 
-### A11. Operator wallets (Ethereum, read-only lookups 2026-10-22)
+| sha256 | type | first submission | VT label | via |
+|---|---|---|---|---|
+| `193e1d0c060de1f249a4b5cfbf82ec6be47223ae4ac3c668851eb33b8e0758d7` | Android | 2022-10-09 | None | `1[.]122[.]168[.]192` |
+| `293473bbf4fa7abb674c12d0b0ff59a47df87d38c0c89658ff343aab189cc89d` | Android | 2022-11-11 | None | `1[.]122[.]168[.]192` |
+| `60c078cdcbb2c0d66ba9998d8ec2ebd820b4d9938ae03da7451db00d25935b02` | Android | 2023-12-05 | None | `1[.]122[.]168[.]192` |
+| `7b15e02eb1012a75718bdbb7e4eb296337f7ddab152a72caf81f4440abf101b5` | ELF | 2026-06-06 | trojan.mirai/usblf626 | `ijustgetsonervy[.]potassium[.]st` |
+| `4f4cf083f86f7f6e3172993b99b970e70aa36627e328c486a875b9e12b5a9502` | ELF | 2026-06-09 | trojan.mirai/usblf926 | `193[.]233[.]252[.]153`, `ijustgetsonervy[.]potassium[.]st` |
+| `7b9c4745eae8f7b4630c1e0287bbbc2e946956d0a9855fb2d1cf46c5fe9b7d47` | ELF | 2026-06-14 | trojan.mirai/possible | `164[.]68[.]127[.]227` |
+| `10c7853e6dc953e6b805cef03a7324caf6c87e68117a7c3175feb463c5c9c0e0` | ELF | 2026-06-18 | trojan.mirai/miraiagen | `193[.]233[.]252[.]153` |
+| `05e0414efe5881316753e5a5ac212c1718f6f18a134cf2779adc10eef7ec525e` | ELF | 2026-08-04 | trojan.mirai/condi | `iloveboats[.]st` |
+| `0ce362bf06c68be344858677d7426c328682a614fead927e0a22cbb9909dfb71` | ELF | 2026-08-04 | trojan.mirai/miraiagen | `iloveboats[.]st` |
+| `133d712ef14ede70885452f0e83ead522457954871c5ecce74019df4a81fa62a` | ELF | 2026-08-04 | trojan.mirai/miraiagen | `iloveboats[.]st` |
+| `311a51ead623e45f2e5310236cc0db150ad92dbafbdffc09593283b2172529a0` | ELF | 2026-08-04 | trojan.mirai/miraiagen | `iloveboats[.]st` |
+| `357866d4d773a24217e8a4053fb1a7e9f75ed1be571a2acbec1d4069f7b2a452` | ELF | 2026-08-04 | trojan.mirai/tl0101h526zt | `iloveboats[.]st` |
+| `45a8be88406c96cc70a24dee4a70549d374101037b1f612186d205eced87b1ad` | ELF | 2026-08-04 | trojan.mirai/miraiagen | `iloveboats[.]st` |
+| `480319a161dcbd7aba883f7950b690819552f4d19b50c500a6310f93424edfe7` | ELF | 2026-08-04 | trojan.mirai/usblh626 | `iloveboats[.]st` |
+| `4dd104330e996a429f67c9d0a6c9dbeb72ecbc18efc6cec3b437ddb67c20b7a2` | ELF | 2026-08-04 | trojan.mirai/tl0101h526zw | `iloveboats[.]st` |
+| `54cf8090eb6444b31110065b81e518a95db0dce6c9e84c50733d12fe1efaf316` | ELF | 2026-08-04 | trojan.mirai/tl0101h526zy | `iloveboats[.]st` |
+| `552fd7f65d88d0bcbab4a158789ee908a9ac57f3f0405544c4ebac3217a51cf4` | ELF | 2026-08-04 | trojan.mirai/egairtigado | `iloveboats[.]st` |
+| `5c7dd5ca5b8b851094c92ca2bd2616c77888e56d6444f422d63c03c0692ace55` | ELF | 2026-08-04 | trojan.mirai/egairtigado | `iloveboats[.]st` |
+| `1d73e05dc57be92556585d06299e706a7dbf66203d5770f8dfdd433481b87ac9` | ELF | 2026-08-05 | trojan.mirai/usblh726 | `iloveboats[.]st` |
+| `4135a4f52eb88adb74fe31baaa9b13c89b17a743ccf8dc2dae2f7ee5e2c634e5` | ELF | 2026-08-05 | trojan.mirai/condi | `iloveboats[.]st` |
+| `58344ba1d657d0620d762730bcfca0fc5d7df510777c7984db227e3013f6f356` | ELF | 2026-08-05 | trojan.mirai/egairtigado | `iloveboats[.]st` |
+| `061c95f6e18dc10f64c5bc442084e7333fc56462bb0da197dd15f9ef2efbd0c7` | ELF | 2026-08-06 | trojan.mirai/condi | `iloveboats[.]st` |
+| `07310b71a33cb76729daed760d08efb079b4591db5b62c647e4deeacb2556e2b` | ELF | 2026-08-06 | trojan.mirai/condi | `iloveboats[.]st` |
+| `11f0b6ae9d0de0c3d397b692adf8da6d86c3af4d3110eda87258a255cb76d8a7` | ELF | 2026-08-06 | trojan.mirai/usblhn26 | `iloveboats[.]st` |
+| `15e7ed72b583b5963afd09be21fa1c43c1634de711e97af81d30deb6ce7097eb` | ELF | 2026-08-06 | trojan.mirai/condi | `iloveboats[.]st` |
+| `2628eaa0b416dc297d79ab137259099ea511306534f633ff4b850de7bcdd8df7` | ELF | 2026-08-06 | trojan.mirai/gafgyt | `iloveboats[.]st` |
+| `2739948d9d667643e0e85204590bad2d533ca3e6ba7efe5c9d7f23ffb1325a8b` | ELF | 2026-08-06 | trojan.mirai/tl0101h826zt | `iloveboats[.]st` |
+| `31b13816f0b94bd65ebd7d8e898c78eb919da4bd3500ae2bbebcc1ccbc79a508` | ELF | 2026-08-06 | trojan.mirai | `iloveboats[.]st` |
+| `3b66f8c544c1882dc1c63e08e6b92e38df9fe4e4d4b13fdd3e9dbc186b7f923a` | ELF | 2026-08-06 | trojan.mirai/usblha26 | `iloveboats[.]st` |
+| `4fbc4150ddc9d3e33312377246498d1ca598562edfae0a53b2a0ed2ad84b1033` | ELF | 2026-08-06 | trojan.mirai/condi | `iloveboats[.]st` |
+| `566e7e389cfed8aeaeb57badfeb406a7b1738fb09a4564a04b907d92f49b386f` | Shell script | 2026-08-06 | trojan.shell/gen2 | `iloveboats[.]st` |
+| `5708704e888e29816dee0a43bcd10e839d91c304e9f6581a457a8f07155d7404` | ELF | 2026-08-06 | trojan.mirai/botnet | `iloveboats[.]st` |
+| `57a6606aa4794894d72be744994a892172e655fe6926a20b4737edb36caf3a58` | ELF | 2026-08-06 | trojan.mirai/condi | `iloveboats[.]st` |
+| `07aeab518d9cdd0e0eeee5653d8e62187fe02a78775118a32fd73e58b759d607` | ELF | 2026-08-07 | trojan.mirai/botnet | `iloveboats[.]st` |
+| `097f826ec0d3f171d67d8ddfc65fa2892aef6a4cbdad57dd7f737c17dcb7627f` | ELF | 2026-08-07 | trojan.mirai | `iloveboats[.]st` |
+| `09a37df33ad341dd957aa8838e1ffcce7a8be7859dddcdf95be7221377fdcc57` | ELF | 2026-08-07 | trojan.mirai/siggen | `iloveboats[.]st` |
+| `11b3f4067a423158786021eee5ba5baf69a97d9cde5974c401733a64113a897d` | ELF | 2026-08-07 | trojan.mirai/tl0101h826zt | `iloveboats[.]st` |
+| `12a2558cceab1c295b0497cdff6e4d919da147e910bcf6f7addcebc308c13d03` | ELF | 2026-08-07 | trojan.mirai/botnet | `iloveboats[.]st` |
+| `4497610ad3cdd72cf058b3a92bf76d1b5fc94b65e218794bd53ebce338744c58` | ELF | 2026-08-07 | trojan.mirai/ravartar | `iloveboats[.]st` |
+| `51e25237d9b05007d1687a8a1687507579300fef256adfbf1aeecb18d8f8ec4a` | ELF | 2026-08-07 | trojan.mirai/condi | `iloveboats[.]st` |
+| `593e250c04a957ec6a260557e8e956cf9b2765614371f0e4d2af55f515e290a4` | ELF | 2026-08-07 | trojan.mirai/usblh726 | `iloveboats[.]st` |
+| `5c177c68e47e508593a608f755a2ce23e832fefa3ff4f504ad906592f03e9529` | ELF | 2026-08-07 | trojan.mirai/usblh726 | `iloveboats[.]st` |
+| `5bda8b6db17de1ff60ae1e7718f5c2bf5f3447658ac85311cc56a86279ceb3ff` | ELF | 2026-08-08 | trojan.mirai/gafgyt | `iloveboats[.]st` |
+| `2bff7468dd9c34e76609953e14435e8932074efeef3e5d623f601c4e45ca9723` | ELF | 2026-08-10 | trojan.mirai/botnet | `iloveboats[.]st` |
+| `01c70849ed30aa1cc4e08cb7529b62c2e3a9044ad0ab000ad84a343444a8dd5a` | ELF | 2026-08-12 | trojan.mirai/abmrisk | `1[.]122[.]168[.]192` |
+| `35bf80f0af528d458d53a7f7179e0ae284d6fb2be613bab904b8fe115e730b0d` | ELF | 2026-08-12 | trojan.mirai/gafgyt | `1[.]122[.]168[.]192` |
+| `7fc40677a79d0cbc675d8c0042d6cfbc87ca1a9982f5046008feb7bd4fe799b9` | ELF | 2026-08-12 | trojan.mirai/tl0101he26zu | `1[.]122[.]168[.]192` |
+| `3a56f24ab23598a62933859f8839bf74796547c29d5e78727e56fbc497327330` | ELF | 2026-08-13 | trojan.mirai/usblhe26 | `1[.]122[.]168[.]192` |
+| `44a6090b72ff9094a862f13a14ff333fcf19b41eb58af9c0bd54f23834c175fa` | ELF | 2026-08-13 | trojan.mirai/tl0101he26zw | `1[.]122[.]168[.]192` |
+| `6a1cefffb07c9a6d58f42f1ed686e4ff7de0f70196d6fef76f424f219e36a315` | ELF | 2026-08-13 | trojan.mirai/usblhd26 | `1[.]122[.]168[.]192` |
+| `5e64d60235104c62a531c5996927dad7defa9c7e2f7e16422608e6ed26b9837e` | ZIP | 2026-08-17 | trojan. | `1[.]122[.]168[.]192` |
+| `76659732f7dbfe456bce1237ac158bb811181164cb6ca24a1aa2e9dea1bd9ba1` | Win32 EXE | 2026-08-17 | trojan.cayunamer | `1[.]122[.]168[.]192` |
+| `767cd32bc1acd108fd673467e8f0baaf420c4ad1fdc3d2d74756821dc2ed1f9f` | Win32 EXE | 2026-09-02 | trojan.dacic/babyk | `1[.]122[.]168[.]192` |
+| `3dd111519325ecf18ed9202649c4f8740a2c195382cd4337fc701056d2234f3b` | ZIP | 2026-09-08 | trojan. | `1[.]122[.]168[.]192` |
+| `3461b097ea026c9161113f0f590e75c47908cebd3d6a30de3b821c10a85ea9fc` | ELF | 2026-09-09 | trojan.mirai/ddos | `1[.]122[.]168[.]192`, `157[.]22[.]240[.]126`, `30[.]194[.]157[.]173`, `dvrs[.]botlesscucks[.]st` |
+| `07b8e9dd4a45f9c2afe81fa0b02445c44461cc508d6de71ef18fd4a008af95bd` | ELF | 2026-09-23 | trojan.mirai/tl0101io26zz | `1[.]122[.]168[.]192`, `130[.]49[.]190[.]185`, `157[.]22[.]240[.]126`, `190[.]185[.]130[.]49`, `dvrs[.]botlesscucks[.]st` |
+| `2b32143e21c0b2ceed37f1100d3a3d42379c48c6d4163f31e25aa524bea34a14` | ELF | 2026-09-23 | trojan.mirai/gafgyt | `1[.]122[.]168[.]192`, `190[.]185[.]130[.]49`, `dvrs[.]botlesscucks[.]st` |
+| `0a0c931f6a7b4d4d66389dab1c83cb4f7355f627399a040e79ce34ae2ab02957` | Shell script | 2026-09-23 | downloader.bash/miraib | `217[.]60[.]103[.]135` |
+| `59a57a435776d6ef223fd4f8fd51086f82ad2a53ac5b23451bdc55a4a48727ab` | ELF | 2026-09-23 | trojan.mirai/abbackdoor | `217[.]60[.]103[.]135` |
+| `03a11dd222b251f0dfd2f1c5140d8d94ec101284e7bc602e25b049d5133d52b4` | ELF | 2026-09-24 | trojan.mirai/nzfl | `217[.]60[.]103[.]135` |
+| `0fb58f267cde56907dd8c626e384589c845a431d2eeaa1d316b7d4aeff71539d` | ELF | 2026-09-24 | trojan.mirai | `217[.]60[.]103[.]135` |
+| `1921fbac7491fd43f197b13d471e7faab8fd41273115ce36ba3731b74934d01b` | ELF | 2026-09-24 | trojan.mirai/usblip26 | `217[.]60[.]103[.]135` |
+| `1a5d8121b5999225a58bb2271b70dee017684ffe1f63b1dc9c4c8b198c861220` | ELF | 2026-09-24 | trojan.mirai/gafgyt | `217[.]60[.]103[.]135` |
+| `1df80ce06971c31a0d332fd7ebe7d6c74a7e7bb3485298004c1c4e9482763532` | ELF | 2026-09-24 | trojan.mirai/usbliu26 | `217[.]60[.]103[.]135` |
+| `43642929001bd532ebb961c15953d0e703055f9e4b2685686eb0da19bf6ab370` | ELF | 2026-09-24 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `480d93ed11cea67d663bb04e3e5be57dbfcb323a4165e02838b28afb7446e71a` | ELF | 2026-09-24 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `6b138dd673640dc611a8b5883301e5b77e6564d43a8462264f50260f674a8ef4` | ELF | 2026-09-25 | trojan.mirai/abtrojan | `1[.]122[.]168[.]192`, `130[.]49[.]190[.]185`, `14[.]31[.]212[.]192`, `190[.]185[.]130[.]49`, `212[.]192[.]14[.]31`, `dvrs[.]botlesscucks[.]st` |
+| `402b27b1676f6129d85a4c6d27f12b57a60af4ad8b35b1ef217438947806c22e` | Shell script | 2026-09-25 | downloader.bash/miraib | `217[.]60[.]103[.]135` |
+| `5177a4a05f79a3164a9629c9bb7804050a64d6ddb2c1b1ed0716d8622247b4ed` | ELF | 2026-09-25 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `051a17b7019d9d9c0c8a236959d92aa83608d2e7e294c7211d9a4c09cb455a2d` | ELF | 2026-09-26 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `051fee03359d2a9d503adad576f89d8b97fd96a46e552023758269d14f591ec0` | ELF | 2026-09-26 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `522428fc37e143139abe0a6e17de326bdcd61a584db15ad3bd74ecce56c74675` | ELF | 2026-09-26 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `5290182e01b17bbc00c95df73749b91a716537c402aac65b4ca908cea8d45ce6` | ELF | 2026-09-26 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `5e788a7f8e9e4cbcc150a353848918a380a314eaad86ba78b74704ae090406c3` | ELF | 2026-09-26 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `5ecff0a7ad9d48b97487032014fd620ccf49a53f7a48a0fa6e0bdd1ef7787dd6` | Shell script | 2026-09-26 | trojan.sbadur/shell | `217[.]60[.]103[.]135` |
+| `45db5310a177214d3a38ce54e6a3abd9da05ba456f925886cdab810b396dc528` | Android | 2026-10-01 | trojan.adbloader/ag1602320 | `217[.]60[.]103[.]135` |
+| `4898d1f8e5e60450001a65c693b7e350869695193a3a50a3e71cc42654895b70` | Android | 2026-10-02 | trojan.adbloader/ag1539407 | `217[.]60[.]103[.]135` |
+| `322eb146bac70314bc69438db23ec2fdbbd43a091e34baef566f1d4c3a19d50b` | ELF | 2026-10-06 | trojan.mirai/ddos | `217[.]60[.]103[.]135` |
+| `39060de52929785f443861a57ba4da1ec96b67197c422922370a255c1c922561` | Shell script | 2026-10-07 | trojan.shell/abdownloader | `217[.]60[.]103[.]135` |
+
+In-the-wild file names of the core builds: `arm7`, `arm5`, `sh4`, `x86_64.elf`, `nfs`, numeric names, and `/var/tmp/.cache/sysd`.
+
+#### A11. Operator wallets (Ethereum, read-only lookups 2026-10-22)
 
 | address | role | type |
 |---|---|---|
@@ -515,8 +678,7 @@ The 79 further files that communicate with the group's domains or hosting are li
 | `0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e` | ENS registry (public) | contract |
 | `0xf29100983e058b709f3d539b0c765937b804ac15` | resolver all three operator names use (operator-specific) | contract |
 
-
-### A12. Related sample hashes
+#### A12. Related sample hashes
 
 High-confidence siblings (same operator):
 
@@ -532,8 +694,7 @@ Likely same operator (ARM):
 - `9ae981175d5e8cf979faf9c4e3e13b3b8270c52a707b3ffc3e6f53b37ea091d2`
 - `a2b38e3080c9a3c53dff1216cb8d8e8b773e10d95523f2ce518c2a41b2b124e3`
 
-Builds surfaced by the 2026-10-22 retrohunt (not previously in the CORD corpus):
+Builds surfaced by the 2026-10-22 retrohunt (not previously in our corpus):
 
 - x86-64: `6b138dd673640dc611a8b5883301e5b77e6564d43a8462264f50260f674a8ef4`, `2d3af69a38b0bee1a059a0d4ce907f8bb2128f25a753fff0f84f48ddcb9592c6`, `c1351f990db3f775e6774194a457081a9f8cea3e57d6d182767fd86551a82c39`, `7f436c109405ec81a44f52d33f2ba3276c797238729dad09f299a84147fbc8d5`, `b85897f6378ff42ec4934f574c8ca447d2c37fe58d0ab7f877fdf48e0522ec6f`, `3a032308c72fe33ddd89f03d9f64e2c56cad5fb0dc6ed8e3d3c6eb684108b629`
 - ARM / SuperH / x86: `3461b097ea026c9161113f0f590e75c47908cebd3d6a30de3b821c10a85ea9fc`, `c475cf4e7877b792544783d3edeb028882df09ee5363ab7f90ce11e14c41cb26`, `e36e40cfdd57ce91c7d349f42b0e7768aa233337166c15e7f215d081df9c0ba9`, `b200ab6d281055e113fe82fbd7d4fef86183221a4a68c6154ab8ca6fc08c34fb`, `44a6090b72ff9094a862f13a14ff333fcf19b41eb58af9c0bd54f23834c175fa`, `7fc40677a79d0cbc675d8c0042d6cfbc87ca1a9982f5046008feb7bd4fe799b9`, `10c7853e6dc953e6b805cef03a7324caf6c87e68117a7c3175feb463c5c9c0e0`, `01c70849ed30aa1cc4e08cb7529b62c2e3a9044ad0ab000ad84a343444a8dd5a`, `6a1cefffb07c9a6d58f42f1ed686e4ff7de0f70196d6fef76f424f219e36a315`, `3f50a7629d8d324e7a614cf89881822b89bb37d26fe0852e7ebf5173b5340d29`, `2b32143e21c0b2ceed37f1100d3a3d42379c48c6d4163f31e25aa524bea34a14`, `b78ae1663194190fb8c92cf1f436ad892c08d51fdbe8cccdaa12e539988e731a`, `5997a6f80b25f550c5e7617bceac4477c580057846f8061e7165d1fbfa89f30a`, `73308b7c5982e99b90075f4d48583c00bb984f1765bc6bd5a01ff3b1bbdd5f51`, `f54f5cec97c24c3eb24f095be8c464b87f4dfc37c0d2f9507b020b24dcf28dd9`, `c65bca6729f694f1b0c806c30c76c54a70e3d32c8981bbe0f62428028b78db6d`, `e2529d4afa39ae4db2eb05d5176317c906289abf09660c75bdeec43e54c55aa3`
-
