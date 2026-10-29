@@ -148,6 +148,8 @@ def build_about() -> None:
 
 if __name__ == "__main__":
     items = [build_report(p) for p in sorted(CONTENT.glob("*.md")) if not p.name.startswith("_")]
-    build_index(items)
+    # `hidden: true` pages (technical companions) are built and linked from their parent
+    # report but kept off the index
+    build_index([m for m in items if m.get("hidden", "").lower() != "true"])
     build_about()
     print("done", datetime.datetime.now().isoformat(timespec="seconds"))

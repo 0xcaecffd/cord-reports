@@ -208,6 +208,16 @@ appear on the operator's other domains.
 VirusTotal links 16 Windows programs to the main phishing server. We downloaded all of
 them for static analysis and ran none. They fall into two families of fake Steam apps.
 
+<div class="callout ok" markdown="1">
+
+**Full technical analysis.** CORD's complete static analysis of one representative from
+each family, with every function, evidence item, detection anchor and unknown:
+
+- [The WebView2 fake Steam app (f27af032)](../2026-10-steam-lure-webview2/index.html)
+- [The NSIS and Electron fake Steam installer (c8628650)](../2026-10-steam-lure-electron/index.html)
+
+</div>
+
 ### Fake Steam windows (WebView2), 11 samples
 
 Eleven are 1 MB 64-bit programs, nearly all named `steam.exe` or `Steam.exe`. When

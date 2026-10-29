@@ -447,6 +447,14 @@ appear on the operator's other domains.</p>
 <h2 id="the-same-platforms-malware">The same platform's malware<a class="headerlink" href="#the-same-platforms-malware" title="Permanent link">#</a></h2>
 <p>VirusTotal links 16 Windows programs to the main phishing server. We downloaded all of
 them for static analysis and ran none. They fall into two families of fake Steam apps.</p>
+<div class="callout ok">
+<p><strong>Full technical analysis.</strong> CORD's complete static analysis of one representative from
+each family, with every function, evidence item, detection anchor and unknown:</p>
+<ul>
+<li><a href="../2026-10-steam-lure-webview2/index.html">The WebView2 fake Steam app (f27af032)</a></li>
+<li><a href="../2026-10-steam-lure-electron/index.html">The NSIS and Electron fake Steam installer (c8628650)</a></li>
+</ul>
+</div>
 <h3 id="fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples<a class="headerlink" href="#fake-steam-windows-webview2-11-samples" title="Permanent link">#</a></h3>
 <p>Eleven are 1 MB 64-bit programs, nearly all named <code>steam.exe</code> or <code>Steam.exe</code>. When
 they run they copy themselves under random names such as <code>C:\Windows\q3e342g.exe</code>. One
