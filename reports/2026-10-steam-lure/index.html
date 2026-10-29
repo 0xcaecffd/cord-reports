@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam | CORD Reports</title>
-<meta name="description" content="A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.">
+<meta name="description" content="Hijacked Steam and Discord accounts are sending lure images to their contacts. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.">
 <link rel="icon" href="../../assets/mark.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../assets/tokens.css">
 <link rel="stylesheet" href="../../assets/site.css">
@@ -19,7 +19,7 @@
 <section class="hero">
 <div class="meta"><span class="pill tlp">TLP:CLEAR</span><span class="pill">phishing</span><span class="pill">infostealer</span><span class="pill">steam</span><span class="pill">discord</span><span class="pill">crypto scam</span></div>
 <h1>Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam</h1>
-<p class="sub">A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.</p>
+<p class="sub">Hijacked Steam and Discord accounts are sending lure images to their contacts. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.</p>
 <p class="sub small">Published 2026-10-29 &middot; updated 2026-10-29 (second-stage correction, fake-cheat delivery, infrastructure census)</p>
 </section>
 <div class="cols">
@@ -153,10 +153,9 @@
 </div>
 
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">#</a></h2>
-<p>In late October 2026 a gamer's Steam and Discord accounts were taken over at the same
-time. Both accounts were then used to message the owner's contacts. Five images were
-sent: one through Steam and four through Discord. We collected the images and followed
-everything they lead to.</p>
+<p>Hijacked Steam and Discord accounts are being used to send lure images to their
+contacts. This report follows one set of five such images, one sent over Steam and four
+over Discord, and everything they lead to.</p>
 <p>The images contain no malware. Each one is a social-engineering lure, and they lead into
 two separate operations.</p>
 <ol>
@@ -206,9 +205,10 @@ else's hands right now.</p>
 <li>The casino lure images reuse a phrase from the casino site itself ("Your Withdrawal
   of $3700.00 Was Successfully!"), so the screenshots came from the real scam kit, not
   a mock-up.</li>
-<li>How the account owner was first compromised is not proven. An infostealer taking
-  both platforms' sessions at once fits best (medium confidence). Password reuse, or a
-  phish like the one the account then sent, also fit.</li>
+<li>How the sending accounts are first compromised is not proven. When Steam and Discord
+  fall at the same time, an infostealer taking both platforms' sessions fits best
+  (medium confidence). Password reuse, or a phish like the ones these accounts then
+  send, also fit.</li>
 </ul>
 <h2 id="how-the-lures-reached-people">How the lures reached people<a class="headerlink" href="#how-the-lures-reached-people" title="Permanent link">#</a></h2>
 <p>Both hijacked accounts sent the images to existing contacts, which is what makes the
@@ -543,8 +543,8 @@ one, it raises its own privileges, and the machine is then open to the platform'
 Steam windows. The <code>cheatdetector[.]shop</code> domain, the Counter-Strike and Rust themed
 domains on the same servers, programs named <code>SteamClient.exe</code>, and one sample's build
 path <code>12rwqr-main/DWASDAS/SteamClient.exe</code> (which looks like the author's own project
-folder) all fit the same picture. We have not tied a specific cheat download to the
-account owner in this case.</p>
+folder) all fit the same picture. We have not tied a specific cheat download to a
+specific hijacked account.</p>
 <h2 id="lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam<a class="headerlink" href="#lane-2-the-mrbeast-crypto-casino-scam" title="Permanent link">#</a></h2>
 <h3 id="the-four-image-story">The four-image story<a class="headerlink" href="#the-four-image-story" title="Permanent link">#</a></h3>
 <div class="figs">
@@ -635,9 +635,9 @@ not name a kit.</p>
 <td>No shared infrastructure, code or registration data. Stolen sessions are often resold</td>
 </tr>
 <tr>
-<td>The account owner was infected by an infostealer</td>
+<td>Sending accounts are hijacked by an infostealer</td>
 <td>Medium</td>
-<td>Both platforms fell at once. Not proven without the PC; password reuse or a phish also fit</td>
+<td>Steam and Discord fall at once. Not proven without an affected PC; password reuse or a phish also fit</td>
 </tr>
 </tbody>
 </table></div>
@@ -697,7 +697,7 @@ not name a kit.</p>
 </tr>
 <tr>
 <td>2026-10-28</td>
-<td>Account takeover reported; this investigation begins</td>
+<td>Lure images collected for this report</td>
 </tr>
 </tbody>
 </table></div>
@@ -800,8 +800,8 @@ relatives (10 of the 16 programs). The rule for the installer group is still bei
 written. Both will be published here as YARA once they pass measurement.</p>
 <h2 id="recovery-and-cleanup">Recovery and cleanup<a class="headerlink" href="#recovery-and-cleanup" title="Permanent link">#</a></h2>
 <p>This section is for anyone whose account sent these lures, and for anyone who scanned
-the QR code, signed in on the fake page, or ran one of the programs. <strong>Steam and Discord
-are both confirmed compromised in this case</strong>, so do all of it.</p>
+the QR code, signed in on the fake page, or ran one of the programs. <strong>If your account
+sent these lures, treat both Steam and Discord as compromised</strong>, and do all of it.</p>
 <div class="callout bad">
 <p><strong>Use your phone or another clean device for every account step.</strong> If the PC is
 infected, it will steal new passwords as you type them. Do not wait for the PC to be

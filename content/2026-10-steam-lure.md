@@ -2,7 +2,7 @@
 title: Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam
 date: 2026-10-29
 updated: 2026-10-29 (second-stage correction, fake-cheat delivery, infrastructure census)
-summary: A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.
+summary: Hijacked Steam and Discord accounts are sending lure images to their contacts. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.
 tlp: CLEAR
 tags: phishing, infostealer, steam, discord, crypto scam
 ---
@@ -18,10 +18,9 @@ tags: phishing, infostealer, steam, discord, crypto scam
 
 ## Summary
 
-In late October 2026 a gamer's Steam and Discord accounts were taken over at the same
-time. Both accounts were then used to message the owner's contacts. Five images were
-sent: one through Steam and four through Discord. We collected the images and followed
-everything they lead to.
+Hijacked Steam and Discord accounts are being used to send lure images to their
+contacts. This report follows one set of five such images, one sent over Steam and four
+over Discord, and everything they lead to.
 
 The images contain no malware. Each one is a social-engineering lure, and they lead into
 two separate operations.
@@ -76,9 +75,10 @@ else's hands right now.
 - The casino lure images reuse a phrase from the casino site itself ("Your Withdrawal
   of $3700.00 Was Successfully!"), so the screenshots came from the real scam kit, not
   a mock-up.
-- How the account owner was first compromised is not proven. An infostealer taking
-  both platforms' sessions at once fits best (medium confidence). Password reuse, or a
-  phish like the one the account then sent, also fit.
+- How the sending accounts are first compromised is not proven. When Steam and Discord
+  fall at the same time, an infostealer taking both platforms' sessions fits best
+  (medium confidence). Password reuse, or a phish like the ones these accounts then
+  send, also fit.
 
 ## How the lures reached people
 
@@ -300,8 +300,8 @@ one, it raises its own privileges, and the machine is then open to the platform'
 Steam windows. The `cheatdetector[.]shop` domain, the Counter-Strike and Rust themed
 domains on the same servers, programs named `SteamClient.exe`, and one sample's build
 path `12rwqr-main/DWASDAS/SteamClient.exe` (which looks like the author's own project
-folder) all fit the same picture. We have not tied a specific cheat download to the
-account owner in this case.
+folder) all fit the same picture. We have not tied a specific cheat download to a
+specific hijacked account.
 
 ## Lane 2: the MrBeast crypto-casino scam
 
@@ -370,7 +370,7 @@ not name a kit.
 | Lane 1 operators are Russian-speaking | Medium-high | Russian-language kit pages with Russian code comments, `gifting-raduga[.]biz`, a Russian-TLD typosquat, a lure uploaded under a Russian file name |
 | Lane 2 is an automated disposable domain farm | High | 25+ same-template domains on one IP, each living days |
 | The two lanes are one actor | Low | No shared infrastructure, code or registration data. Stolen sessions are often resold |
-| The account owner was infected by an infostealer | Medium | Both platforms fell at once. Not proven without the PC; password reuse or a phish also fit |
+| Sending accounts are hijacked by an infostealer | Medium | Steam and Discord fall at once. Not proven without an affected PC; password reuse or a phish also fit |
 
 We keep attribution at the group level and do not name individuals.
 
@@ -389,7 +389,7 @@ We keep attribution at the group level and do not name individuals.
 | 2026-10-17 | Latest fake-Steam program first seen; `basoowin[.]com` casino captured |
 | 2026-10-23 | `marewin[.]com` registered; the wallet "receipt" in the lure is dated this day |
 | ~2026-10-26 | `marewin[.]com` suspended by its registrar |
-| 2026-10-28 | Account takeover reported; this investigation begins |
+| 2026-10-28 | Lure images collected for this report |
 
 ## MITRE ATT&CK
 
@@ -442,8 +442,8 @@ written. Both will be published here as YARA once they pass measurement.
 ## Recovery and cleanup
 
 This section is for anyone whose account sent these lures, and for anyone who scanned
-the QR code, signed in on the fake page, or ran one of the programs. **Steam and Discord
-are both confirmed compromised in this case**, so do all of it.
+the QR code, signed in on the fake page, or ran one of the programs. **If your account
+sent these lures, treat both Steam and Discord as compromised**, and do all of it.
 
 <div class="callout bad" markdown="1">
 
