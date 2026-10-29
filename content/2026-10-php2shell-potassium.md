@@ -1,117 +1,265 @@
 ---
-title: From a PHP flaw to a global botnet: PHP2Shell and the potassium Mirai lineage
+title: PHP2Shell and potassium: four RCE paths, the DDoS bot pushed through them, and the operator behind it
 date: 2026-10-27
-updated: 2026-10-29 (full technical edition)
-summary: Executive debrief, full technical edition. Two critical PHP session flaws turned into remote code execution on default installs, the encrypted Mirai-derived DDoS bot pushed through them within hours, and the operator behind it, down to decoy DNS, an Ethereum C2 fallback and a money trail to named exchanges.
+updated: 2026-10-29 (restructured; four-path analysis and detection matrix)
+summary: Three PHP session CVEs yield four demonstrated remote-code-execution paths. This is the full analysis: the attack chains, the detection matrix built against real crashing traffic, the encrypted Mirai-derived bot pushed through within hours, and the operator, down to decoy DNS, an Ethereum C2 fallback and a money trail to named exchanges.
 tlp: CLEAR
-tags: php, mirai, ddos, linux, blockchain
+tags: php, rce, mirai, ddos, blockchain
 ---
-
-<div class="cards">
-<div class="card"><div class="k">RCE chains demonstrated</div><div class="v">4</div></div>
-<div class="card"><div class="k">Detection at discovery</div><div class="v">4 / ~65</div></div>
-<div class="card"><div class="k">Related builds found</div><div class="v">36+</div></div>
-<div class="card"><div class="k">Real C2 servers recovered</div><div class="v">9</div></div>
-<div class="card"><div class="k">YARA false positives on clean software</div><div class="v">0</div></div>
-</div>
 
 <div class="callout bad" markdown="1">
 
-**Patch now.** PHP 8.3.36 and later fix CVE-2026-109618 and CVE-2026-109619. A further
-issue, CVE-2026-115560, is unpatched; its mechanism is withheld here. Indicators below are
-defanged; machine-readable lists are in [iocs.csv](iocs.csv), and the YARA rules are in
+**Patch now.** PHP 8.3.36 / 8.4.27 / 8.5.12 and later fix CVE-2026-109618 and
+CVE-2026-109619, and the same releases close the denial-of-service variant. A fourth
+issue, CVE-2026-115560, is a separate bug class, needs an application framework to reach
+code execution, and is unpatched; its trigger is withheld from this public copy. Indicators
+below are defanged; the full lists are in [iocs.csv](iocs.csv) and the YARA rules in
 [rules/](rules/potassium-all.yar).
 
 </div>
 
+## Four RCE paths from one flaw
 
-This is one connected story, told in three acts. First, a pair of critical PHP flaws that the industry initially called hard to exploit, and that our lab turned into working remote code execution across four independent chains, three CVEs, with one chain still unpatched. Second, the malware attackers pushed through that hole within hours of disclosure, which we caught in the wild. Third, the crew behind it: their tools, their infrastructure, and a money trail on the blockchain that, at one point, runs all the way back to a named exchange.
+Three CVEs in PHP's session upload-progress feature produce four distinct
+remote-code-execution paths. All four were demonstrated end to end in our lab on stock
+`php:8.3.35-apache` (mod_php prefork, default configuration). Three are memory-corruption
+chains fixed in PHP 8.3.36 / 8.4.27 / 8.5.12. The fourth, CVE-2026-115560, is a different
+bug class: it reaches code execution only with an application framework present, and it is
+unpatched as of late October 2026.
 
-Everything needed to act on this is in one file: the complete, machine-usable indicator list sits in the appendix at the end. We name no individuals. Our attribution is to a group, defined by its code, its infrastructure, and its wallets.
+All four begin at the same stumble. A crafted request makes PHP run out of memory in the
+middle of parsing, and PHP's internal "give up and unwind" jump (`zend_bailout`) skips the
+cleanup that a normal request runs. What that skipped cleanup leaves behind decides which
+path opens.
+
+<figure class="diagram">
+<svg viewBox="0 0 760 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="d-t d-d" class="chaindiag" font-family="var(--font-sans)">
+<title id="d-t">PHP2Shell: four RCE paths from one out-of-memory bailout</title>
+<desc id="d-d">A crafted upload makes PHP run out of memory mid-parse; the bailout skips session cleanup. Three patched paths reclaim a dangling reference to run a command on stock PHP; a fourth, unpatched path injects an object that needs a framework gadget. The attacker then installs the potassium DDoS bot.</desc>
+<style>
+.chaindiag text{fill:var(--fg);font-size:13px}
+.chaindiag .sub{fill:var(--muted);font-size:11px}
+.chaindiag .cve{font-size:12px;font-weight:600}
+.chaindiag .box{fill:var(--surface);stroke:var(--line)}
+.chaindiag .edge{stroke:var(--muted);stroke-width:1.5;fill:none;marker-end:url(#arh)}
+.chaindiag .bar{height:4px}
+.chaindiag .lbl{fill:var(--muted);font-size:11px;font-style:italic}
+</style>
+<defs><marker id="arh" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker></defs>
+
+<!-- spine -->
+<rect class="box" x="180" y="12" width="400" height="38" rx="6"/>
+<text x="380" y="30" text-anchor="middle">Unauthenticated HTTP request</text>
+<text x="380" y="44" text-anchor="middle" class="sub">looks like ordinary form data, no login needed</text>
+<path class="edge" d="M380,50 L380,68"/>
+
+<rect class="box" x="180" y="70" width="400" height="38" rx="6"/>
+<rect x="180" y="70" width="400" height="4" rx="2" fill="var(--accent)"/>
+<text x="380" y="88" text-anchor="middle">Request 1: a crafted upload exhausts memory mid-parse</text>
+<text x="380" y="102" text-anchor="middle" class="sub">a few hundred KB is enough on a default 128 MB limit</text>
+<path class="edge" d="M380,108 L380,126"/>
+
+<rect class="box" x="150" y="128" width="460" height="44" rx="6"/>
+<rect x="150" y="128" width="460" height="4" rx="2" fill="var(--warn)"/>
+<text x="380" y="148" text-anchor="middle">PHP's error bailout unwinds the request and skips cleanup</text>
+<text x="380" y="163" text-anchor="middle" class="sub">the shared stumble: a reference or object is left in a bad state</text>
+
+<text x="380" y="196" text-anchor="middle" class="lbl">a second request reclaims what the skipped cleanup left behind</text>
+
+<!-- four paths -->
+<g>
+<rect class="box" x="10" y="208" width="175" height="58" rx="6"/>
+<rect x="10" y="208" width="175" height="4" rx="2" fill="var(--bad)"/>
+<text x="97" y="228" text-anchor="middle" class="cve">CVE-2026-109618</text>
+<text x="97" y="245" text-anchor="middle" class="sub">Big-field</text>
+<text x="97" y="259" text-anchor="middle" class="sub">out of memory</text>
+
+<rect class="box" x="197" y="208" width="175" height="58" rx="6"/>
+<rect x="197" y="208" width="175" height="4" rx="2" fill="var(--bad)"/>
+<text x="284" y="228" text-anchor="middle" class="cve">CVE-2026-109619</text>
+<text x="284" y="245" text-anchor="middle" class="sub">Filename</text>
+<text x="284" y="259" text-anchor="middle" class="sub">out of memory</text>
+
+<rect class="box" x="384" y="208" width="175" height="58" rx="6"/>
+<rect x="384" y="208" width="175" height="4" rx="2" fill="var(--bad)"/>
+<text x="471" y="228" text-anchor="middle" class="cve">CVE-2026-109618</text>
+<text x="471" y="245" text-anchor="middle" class="sub">Unserialize</text>
+<text x="471" y="259" text-anchor="middle" class="sub">dual primitive</text>
+
+<rect class="box" x="571" y="208" width="179" height="58" rx="6"/>
+<rect x="571" y="208" width="179" height="4" rx="2" fill="var(--warn)"/>
+<text x="660" y="228" text-anchor="middle" class="cve">CVE-2026-115560</text>
+<text x="660" y="245" text-anchor="middle" class="sub">Serializer mismatch</text>
+<text x="660" y="259" text-anchor="middle" class="sub">no fix yet</text>
+</g>
+
+<path class="edge" d="M97,266 L97,300"/>
+<path class="edge" d="M284,266 L284,300"/>
+<path class="edge" d="M471,266 L471,300"/>
+<path class="edge" d="M660,266 L660,300"/>
+
+<!-- outcomes -->
+<rect class="box" x="10" y="302" width="549" height="50" rx="6"/>
+<text x="284" y="322" text-anchor="middle">system() runs as the web-server user</text>
+<text x="284" y="338" text-anchor="middle" class="sub">remote code execution on stock PHP &#183; fixed in 8.3.36 / 8.4.27 / 8.5.12</text>
+
+<rect class="box" x="571" y="302" width="179" height="50" rx="6"/>
+<text x="660" y="320" text-anchor="middle" class="sub">object injection</text>
+<text x="660" y="335" text-anchor="middle" class="sub">RCE only with a</text>
+<text x="660" y="348" text-anchor="middle" class="sub">framework gadget</text>
+
+<path class="edge" d="M284,352 L284,384"/>
+
+<!-- aftermath -->
+<rect class="box" x="140" y="386" width="288" height="40" rx="6"/>
+<text x="284" y="405" text-anchor="middle">the attacker installs a loader</text>
+<text x="284" y="419" text-anchor="middle" class="sub">fetched over the fresh shell, run as ./nfs php</text>
+<path class="edge" d="M284,426 L284,444"/>
+
+<rect class="box" x="120" y="446" width="328" height="44" rx="6"/>
+<rect x="120" y="446" width="328" height="4" rx="2" fill="var(--bad)"/>
+<text x="284" y="466" text-anchor="middle">potassium</text>
+<text x="284" y="481" text-anchor="middle" class="sub">an encrypted, Mirai-derived Linux DDoS bot</text>
+</svg>
+<figcaption>The four paths share one starting point: an out-of-memory bailout that skips cleanup. Three leave a dangling reference that a second request reclaims to run a command on stock PHP; the fourth injects an object that only reaches code execution with a framework gadget, and has no fix yet.</figcaption>
+</figure>
+
+### The paths at a glance
+
+<div class="tw">
+
+| | 109618 Big-field | 109619 Filename | 109618 Unserialize | 115560 Serializer mismatch |
+|---|---|---|---|---|
+| **Bug class** | Use-after-free | Use-after-free | Use-after-free (dual) | Serializer mismatch |
+| **What is left dangling** | A freed session reference | Same, different trigger | A write primitive *and* a session reference | Nothing freed; attacker input is deserialized |
+| **Out-of-memory trigger** | An oversized field value | An overlong upload filename (plus a file part) | Same as big-field | None |
+| **Primitive** | Code execution | Code execution | Arbitrary write + code execution | Object instantiation to code execution |
+| **Stock PHP RCE?** | Yes | Yes | Yes | No — needs a framework gadget |
+| **Fixed?** | Yes, 8.3.36+ | Yes, 8.3.36+ | Yes, 8.3.36+ | **No** |
+| **Also affects** | mod_php prefork | mod_php prefork | mod_php prefork | Any SAPI (mod_php, FPM) |
+
+</div>
+
+All three memory-corruption paths were confirmed on default configuration: 14 segfaults in
+15 rounds on the vulnerable build, and 0 crashes in 261 rounds on the patched build with
+byte-for-byte identical traffic. The session file on disk is never corrupted; the damage
+lives entirely in the running worker's memory.
+
+### How each path works
+
+These descriptions stay at the level of PHP's own advisories. The step-by-step
+exploit-development detail (heap grooming, the reclaim carrier, the gadget chain) is not
+published.
+
+**CVE-2026-109618, big-field out of memory.** A multipart POST with a file part and an
+oversized field value exhausts `memory_limit` mid-parse. The bailout skips session cleanup
+and leaves a dangling reference. A follow-up request reclaims that freed slot and redirects
+a destructor so the engine runs a command as the web-server user. Two preliminary requests
+leak the addresses the reclaim needs.
+
+**CVE-2026-109619, filename out of memory.** The same corruption and the same end, reached
+by a different trigger: an overlong upload filename exhausts memory from a single header
+field. A preceding file part is required, so the progress array is populated and the stale
+reference survives into the next request. Zero-byte file content is enough.
+
+**CVE-2026-109618, unserialize dual primitive.** The one out-of-memory bailout can leave
+*two* independent globals in a bad state at once: the session reference above, and the
+session unserializer's own bookkeeping, which yields an arbitrary write. Our proof of
+concept chains both from a single follow-up request, showing the two primitives are
+reachable and composable, not just one or the other.
+
+**CVE-2026-115560, serializer mismatch (unpatched).** A separate bug. The upload-progress
+callback writes session data with the server-configured serializer before application code
+runs; if the application later switches serializers, attacker-controlled input can be
+deserialized into a live object. On stock PHP this reaches no code execution, because the
+standard library ships no usable destructor gadget. With a framework that has one (the
+PHPGGC catalog lists dozens), it does. This affects fully patched builds. **The trigger and
+the gadget path are withheld here until a fix ships.**
+
+## Detection
+
+The original detection suite was built against the wrong assumption, that the attack would
+look like a large, loud payload. Against the real crashing traffic only one of the first
+fifteen signatures fired. We rebuilt and engine-validated the suite directly against the
+functional attack. The rules below detect the *attempt*; a request that fails to corrupt
+memory is a failed attempt at the same attack, not benign traffic, so alerting on the shape
+is the right call.
+
+### Request-side (Suricata)
+
+<div class="tw">
+
+| SID | What it matches | Big-field | Filename | Unserialize | 115560 |
+|---|---|---|---|---|---|
+| 92610008 | Upload-progress telemetry (field present) | yes | yes | yes | yes |
+| 92610020 / 21 | Overlong upload filename (>= 1 KB) | no | yes | varies | no |
+| 92610022 | `PHPSESSID` sent as a multipart form field | yes | yes | yes | possible |
+| 92610038 | `system\x00` in the multipart body | fire | fire | no | no |
+| 92610040 | Upload-progress request with no file part | fire | fire | fire | no |
+| 92610041 | Session-pinned upload carrying progress | OOM | OOM | OOM | yes |
+
+</div>
+
+### Response-side (Suricata)
+
+<div class="tw">
+
+| SID | What it matches | Use |
+|---|---|---|
+| 92610053 | Oversized `PHPSESSID` (> 64 chars) in `Set-Cookie` | the info-leak stages |
+| 92610054 | Non-hex `PHPSESSID` in `Set-Cookie` | the info-leak stages |
+
+</div>
+
+### Host-side signals
+
+<div class="tw">
+
+| Signal | Crash exit | Silent use-after-free | Serializer mismatch |
+|---|---|---|---|
+| `AH00051` / `AH00052` worker reap | yes (16/16) | no (0/30) | no |
+| `zend_mm_heap corrupted` | sometimes | no | no |
+| `Allowed memory size exhausted` | yes (request 1) | yes (request 1) | no |
+| `Failed to write session data (files)` | no (dead worker) | yes (30/30) | no |
+| HTTP status of the second request | connection closed | **200** | **200** |
+
+</div>
+
+**The reliable detector is the ordered triple**: request 1 logs `Allowed memory size
+exhausted`, then request 2 returns HTTP 200 while logging `Failed to write session data`,
+with no worker reap and no allocator-corruption line. Each signal alone is ambiguous; the
+ordered triple is not. It catches both the crash and the silent use-after-free exits of the
+memory-corruption paths. It does not catch the serializer mismatch.
+
+### What is not covered
+
+- **The published big-field proof of concept** uses a urlencoded body with an oversized
+  field *name*, not multipart. The multipart-keyed rules miss it; a dedicated rule is
+  drafted but not yet baselined.
+- **The serializer-mismatch injection.** A generic rule can alert on PHP serialized-object
+  markers (`O:`, `a:`) appearing in an upload-progress field value. We hold the precise,
+  higher-fidelity signature with the trigger until CVE-2026-115560 is patched.
+- **The silent use-after-free** has no wire-side signal at all. The worker survives and
+  returns 200; the only tell is the host-side `Failed to write session data` line.
+
+### Mitigations
+
+<div class="tw">
+
+| Mitigation | 109618 / 109619 (and the DoS variant) | 115560 |
+|---|---|---|
+| Patch to 8.3.36 / 8.4.27 / 8.5.12+ | **Fixes** | Does not fix |
+| `session.upload_progress.enabled = 0` | **Fixes** (removes the trigger) | **Fixes** |
+| Switch to PHP-FPM | Mitigates (502 on crash, no persistent state) | Does not mitigate |
+| Do not switch `session.serialize_handler` at runtime | No effect | **Fixes** |
+| Raising `memory_limit` | No help: moves where the failure lands, does not stop it | n/a |
+| `session.use_strict_mode = 1` | No help: one harmless request earns a server-issued session ID that strict mode accepts | n/a |
+
+</div>
 
 ---
 
-## Act I — The exploit: PHP2Shell (CVE-2026-109618 / CVE-2026-109619)
-
-
-### What the lab proved
-
-When two critical memory-corruption flaws in PHP were patched during active in-the-wild exploitation, early public reporting downplayed their real-world impact, claiming the exploit required an unusually low, non-standard memory_limit=8M.
-
-Our lab reproduction proved that premise wrong. By analyzing the patch's regression tests, we confirmed that stock PHP installations with default configurations (128M memory limit) are fully vulnerable via an input-amplification technique. A tiny 551 KB request can exhaust a 128 MB heap, corrupt internal allocator structures, and reliably crash or destabilize the worker process on the subsequent request.
-
-Because working exploit traffic looks like ordinary form data rather than a loud, oversized payload, only 6 of our 26 detection signatures fired on the real attack pair, while 19 of 26 triggered on benign traffic: a detection suite built against the wrong assumptions. We rebuilt and engine-validated the rules directly against the functional crashing traffic, correlating the two-stage sequence.
-
-### Vulnerability reality: the amplification mechanism
-
-The underlying bug is a use-after-free (UAF) in PHP's session upload-progress handler. When a request runs out of memory mid-parse, PHP triggers an internal longjmp that bypasses normal cleanup, abandoning dangling pointers in the Zend memory allocator (zend_mm_heap).
-
-The fallacy of the 8 MB limit: Public exploit scripts were artificially constrained because they relied on raw payload volume to exhaust memory.
-
-The 245x multiplier: Multipart body parts with an empty filename (filename="") bypass PHP's file-upload size checks entirely. However, PHP still builds full internal $_FILES metadata arrays for each one. By nesting field names, an attacker achieves an approximate 245x memory amplification.
-
-Real-world impact: A 551 KB request, well below the default post_max_size=8M, completely exhausts PHP's default 128 MB heap during request parsing.
-
-### The two-request attack sequence
-
-Request 1 (heap corruption): The attacker submits a session ID, upload progress field, one small valid file, and roughly 1,000 empty-filename fields. This forces an out-of-memory condition during parsing, leaving a dangling pointer in the worker's allocator.
-
-Request 2 (trigger): The attacker immediately replays the session ID without multipart data to the same worker. PHP attempts to read the corrupted heap allocation before executing any application code, triggering an immediate crash (e.g., zend_mm_heap corrupted).
-
-### Lab reproduction and validation
-
-We benchmarked the exploit chain across default Docker environments (php:8.3.35-apache vs. the patched 8.3.36 release):
-
-Vulnerable build (8.3.35): 14 segfaults across 15 test rounds (and 5 of 5 in tightly pinned single-worker runs). Core dumps placed the crash directly inside PHP's native memory allocator.
-
-Patched build (8.3.36): 0 crashes across 261 test runs using identical traffic, memory limits, and request volume.
-
-Key architecture finding: The session file on disk remains clean and uncorrupted; the damage is isolated entirely to the running Apache worker's memory space.
-
-### How we got here: investigation milestones
-
-Moving from an unstable public proof-of-concept to an accurate detection model took roughly 48 hours of iterative testing:
-
-Deconstructing the public PoC: The initial community script caused only worker deadlocks and session lock starvation (a denial of service), failing to trigger true memory corruption under default settings.
-
-Isolating configuration dependencies: Matrix testing showed that memory exhaustion behavior depended strictly on allocation ceilings rather than PHP version differences. Patched builds absorbed the hit and recovered cleanly, establishing our baseline control.
-
-Uncovering the real vector: Debugging revealed that the vendor's patch and its 21 regression tests contained the missing link: the empty-filename parser amplification.
-
-Validating the sequence: Replaying the two-request sequence alone without amplification failed across ~3,700 runs. Coupling the amplification in Request 1 with the stale session in Request 2 produced 100% reliable corruption on vulnerable workers.
-
-Evaluating exploitation headroom: While remote info-leaks and brute-force heap sprays proved unviable, heap-grooming via input unescaping remains an active research path to assess whether controlled execution is achievable beyond denial of service.
-
-### From crash to code execution: four demonstrated RCE chains
-
-Follow-on lab work moved from a crash to **working remote code execution**: four independent chains, each demonstrated end-to-end with a pcap showing `system()` running as www-data. The exploit requires only unauthenticated HTTP access; the payload looks like ordinary form data.
-
-The four chains span two distinct bug classes:
-
-**Memory-corruption chains (3), CVE-2026-109618 / CVE-2026-109619, fixed in PHP 8.3.36+:**
-
-- **Big-field OOM** (CVE-2026-109618): the amplified multipart request exhausts the heap; a second request reclaims the freed allocation with attacker data and pivots into `system()`.
-- **Filename OOM** (CVE-2026-109619): the empty-filename amplification variant, same corruption primitive, different trigger path.
-- **Unserialize dual-primitive** (CVE-2026-109618): combines the heap corruption with a crafted serialized payload planted in the session via upload-progress filenames; `php_var_unserialize` on the stale allocation instantiates an attacker-shaped object whose destructor runs the command.
-
-**Fourth chain (1), CVE-2026-115560, unpatched as of October 2026.** A separate issue that also needs an application framework to reach code execution; stock PHP alone is not affected. Its details are withheld from this public copy until a fix ships.
-
-All four chains were verified on default-config Apache/mod_php prefork workers: 0 crashes across 261 runs on patched builds (8.3.36+) using identical traffic.
-
----
-
-### Lab notes: from crash to controlled reclaim (patched CVEs)
-
-These notes, written on 2026-10-22 before the chains above were finished, show the step that turned the crash into a usable primitive for CVE-2026-109618.
-
-Our follow-on lab work has sharpened how we are pursuing a working exploit. The unlock was to **aim rather than spray**: instead of flooding the second request with fields, we plant the controlled bytes in the first request's upload *filenames*, so PHP's upload-progress handler writes them into the session — and the second request's deserialization, which is exactly where the crash faults, then allocates them.
-
-- **The crash now lands on the real primitive, on demand.** Every run faults on a free-list pop inside PHP's allocator on the session-decode (`php_var_unserialize`) path — the exploitable site. Earlier attempts only reached harmless debug assertions.
-- **We can inject a structured object, not just noise.** An escaped quote in a `filename=` is unescaped by PHP into a real quote, so the filename smuggles the quotes a serialized payload needs; with the filename placed last, PHP's serializer closes an attacker-supplied `O:8:"stdClass"…` into a live, attacker-shaped object. That is controllable reclaim material, far more than a byte spray.
-
-**Detection rebuild.** Against the working attack, only one of our fifteen original detection rules fired. We rebuilt and engine-validated the suite against the crashing traffic: 28 Suricata rules and 8 Sigma rules that correlate the two-request sequence, with no false positives in testing.
-
-## Act II — The payload we caught in the wild
+## The malware: potassium, the second stage
 
 Within hours of the patch, attackers were already using this exact flaw to plant a second-stage bot, the malware that lands once the exploit has opened the door. We obtained the sample, and it turned out to be far more than a run-of-the-mill Mirai knock-off (Mirai being the widely copied botnet code that most Linux DDoS malware descends from).
 
@@ -142,7 +290,9 @@ In short: this is an actively maintained, multi-platform family, from Linux serv
 
 ---
 
-## Act III — The operator
+---
+
+## The operator
 
 The crew is careful, but careful people are consistent, and consistency makes a pattern. The pattern led us a long way.
 
@@ -174,23 +324,24 @@ They are competent and deliberate: encrypted builds, rotating infrastructure, de
 
 ---
 
-## What to do about it
+---
 
-### Detect the exploitation
+## Detecting and blocking the malware
 
-- Deploy the rebuilt detection rules validated against the real crashing traffic. The original suite was ineffective: only 6 of 26 signatures fired on the actual attack pair.
-- Watch for three things: bursts of `multipart/form-data` POSTs carrying `PHP_SESSION_UPLOAD_PROGRESS` aimed at pages that do not accept uploads; PHP workers running out of memory and crashing (SIGSEGV) in bursts; and any web worker that opens a shell and then fetches a payload.
-
-### Detect the malware
-
-- Four YARA rules cover the family across architectures with **zero hits on clean software** (`elf_mirai_ext_x64_build_family`, `elf_mirai_ext_x64_chacha_lineage`, `elf_mirai_ext_multiarch_literals`, and a survey rule for triage).
-
-### Block and hunt the infrastructure
-
-- Block the **real, recovered** control servers listed in the appendix, never the published decoy addresses, which belong to bystanders.
-- On hosts, look for a loopback listener on TCP port 1234, a hidden directory at `/var/tmp/.cache/sysd`, `/tmp/.manta` or `/tmp/.xwiki` drops, and a process whose `/proc` entry has been masked by another.
-- Proactively, watch the three blockchain names for changes (a read-only query), watch for new `.st` domains from the same two resellers, and pivot on the relay wallets to find more of the operator's holdings.
-
+- **YARA.** Four rules cover the family across architectures with no hits on clean software
+  (16,686 ELF samples, 4,699 Linux system binaries and 1,542 Windows files tested):
+  [`elf_mirai_ext_x64_build_family`](rules/elf_mirai_ext_x64_build_family.yar),
+  [`elf_mirai_ext_x64_chacha_lineage`](rules/elf_mirai_ext_x64_chacha_lineage.yar),
+  [`elf_mirai_ext_multiarch_literals`](rules/elf_mirai_ext_multiarch_literals.yar) and a
+  survey rule for triage. All four in one file:
+  [potassium-all.yar](rules/potassium-all.yar).
+- **Block the real control servers** in the appendix, never the published DNS answers,
+  which are decoys pointing at bystanders.
+- **On Linux hosts**, look for a loopback listener on TCP port 1234, a hidden directory at
+  `/var/tmp/.cache/sysd`, files at `/tmp/.manta` or `/tmp/.xwiki`, and a process whose
+  `/proc` entry is masked by another.
+- **Proactively**, watch the three ENS names for record changes (a read-only query), watch
+  for new `.st` domains from the same two resellers, and pivot on the relay wallets.
 
 ## Appendix — full indicators
 

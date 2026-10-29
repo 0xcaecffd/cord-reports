@@ -78,6 +78,109 @@ else's hands right now.
   (medium confidence). Password reuse, or a phish like the ones these accounts then
   send, also fit.
 
+## The malware: fake Steam apps and game cheats
+
+The operator behind these lures runs malware as well as phishing pages. VirusTotal links
+16 Windows programs to its servers, the same infrastructure that hosts the Steam phishing
+pages ([Lane 1](#lane-1-the-steam-phishing-service)). We downloaded all of them for static
+analysis and ran none. They fall into two families of fake Steam apps, delivered through
+fake game cheats.
+
+<div class="callout ok" markdown="1">
+
+**Full technical analysis.** CORD's complete static analysis of one representative from
+each family, with every function, evidence item, detection anchor and unknown:
+
+- [The WebView2 fake Steam app (f27af032)](../2026-10-steam-lure-webview2/index.html)
+- [The NSIS and Electron fake Steam installer (c8628650)](../2026-10-steam-lure-electron/index.html)
+
+</div>
+
+### Fake Steam windows (WebView2), 11 samples
+
+Eleven are 1 MB 64-bit programs, nearly all named `steam.exe` or `Steam.exe`. When
+they run they copy themselves under random names such as `C:\Windows\q3e342g.exe`. One
+used the real Steam install path, `C:\Program Files (x86)\Steam\steam.exe`. Ten share
+the same five bundled files, so they come from one builder. They were first submitted to
+VirusTotal between 2026-09-21 and 2026-10-17. Detection ranges from 3 to 40 engines.
+
+We analysed a representative (`f27af032…`, 40 detections) in depth. What it does:
+
+<div class="flow">
+<div>Takes a single-instance lock, so a second copy waits for the first to exit.</div>
+<div>Writes Microsoft's own <code>WebView2Loader.dll</code>, carried as a 164 KB resource (RCDATA 300), to disk. The DLL is genuine and signed by Microsoft. It is there so the fake window works on any machine.</div>
+<div>Opens a frameless, dark, DPI-aware window built on Microsoft Edge WebView2, styled like a Steam sign-in. It stays hidden for 1.5 seconds, then appears in front.</div>
+<div>Loads its page from <code>hxxps://8909451279.f1shh[.]at/client</code>, the same phishing host we fetched.</div>
+<div>Gives that page a JSON message bridge to native code. Through it the page can read any file by path, write any file, and open URLs or programs.</div>
+<div>Builds a machine fingerprint from the process ID, tick count and locale, mixed with fixed XOR constants, and sends it with its web requests (WinInet, 15 s and 30 s timeouts).</div>
+</div>
+
+The result is a remote-controlled credential trap. The program itself holds no stealing
+logic: the operator's server decides what the window shows, and the bridge lets that
+page read and write files on the machine. That covers Steam's local session files as
+well as browser data, and the operator can change what it takes without shipping a new
+program.
+
+<div class="callout" markdown="1">
+
+**Correction.** An earlier version of this report called the RCDATA 300 resource an
+unanalysed second-stage program. It is Microsoft's signed `WebView2Loader.dll`
+(SHA-256 `a9a09232…`, 0 detections), not malware. Do not block it by hash.
+
+</div>
+
+### Fake Steam installers (NSIS and Electron), 5 samples
+
+Five 61 MB files are NSIS 3 installers, with 0 to 2 detections. They are built in
+three layers:
+
+<div class="flow">
+<div><strong>NSIS installer.</strong> Stock NSIS code. Its version info and icon pose as Valve. It unpacks a 63 MB 7-zip archive and starts the payload with no window (<code>CREATE_NO_WINDOW</code>).</div>
+<div><strong>Electron app.</strong> A renamed Chromium/Electron runtime with an <code>app.asar</code>. Its <code>package.json</code> says <code>"name": "steam-login-app"</code> and author "Valve Corporation". The 44-byte <code>main.js</code> just loads <code>main.jsc</code> through bytenode.</div>
+<div><strong>Compiled payload.</strong> <code>main.jsc</code> is 93 KB of V8 bytecode, which hides the source. Its strings show a <code>BrowserWindow</code> with Node integration on and context isolation off, a <code>TARGET_URLS</code> list, injected CSS and JavaScript in a dark Steam-like theme, browser storage and service-worker access, and two operator hosts that serve the sign-in page and receive what it collects: <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
+</div>
+
+This is the same idea as the WebView2 programs, rebuilt on Electron: a convincing
+Steam window that the victim signs in to, with full access to the machine behind it.
+The two hosts it calls serve the platform's Russian-language Steam page, built to fill
+an Electron window (a CSS comment reads "фон как в Electron", "background as in
+Electron"), with a `showAuthWin` hook that opens the sign-in overlay.
+
+All five installers carry the same `package.json` (version `10.50.87.67`). Their builds
+show the author at work:
+
+| Build | First seen | Payload |
+|---|---|---|
+| `a0eb8249…` | 2026-09-19 | Obfuscated JavaScript (`main.js`, 87 KB) with `TARGET_URLS`, `ANTI_DELETE`, `PROCESS_PROTECTION` and `WATCHER_SCRIPT` features |
+| `b136e43b…` | 2026-09-22 | Same, rebuilt |
+| `6b3bb3be…` | 2026-10-03 | Compiled V8 bytecode (`main.jsc`, 124 KB) |
+| `64465b46…` | 2026-10-04 | Bytecode, calls `pulse-keys[.]store/6887` |
+| `c8628650…` | October | Bytecode (93 KB), calls `fakefake[.]shop/3253523` and `pulse-keys[.]store/6887` |
+
+The switch from readable JavaScript to bytecode in early October hid the logic from
+static scanners, which fits the installers' 0 to 2 detections.
+
+### Fake game cheats: how victims get infected
+
+VirusTotal shows 18 more programs calling `fakefake[.]shop`. They are named after game
+cheats, injectors and macro tools, and every one that has a label is flagged as a UAC
+bypass dropper (`trojan.bypassuac`, 7 to 32 engines):
+
+> Arcane, Covchec, Division, Evicted Macros, Exlab, Extreme, Fecurity, Hyper, Mason,
+> Medusa Lite, Mira, Permanent, Phantom injector, SMG Software, Unicore, Visor
+
+They first appeared between 2026-08-02 and 2026-08-14, a month before the earliest fake
+Steam installer. Several ran from a temporary unpack folder, the pattern of a
+self-extracting "cheat" download.
+
+This fills the gap in the delivery story. A gamer looking for a cheat downloads a fake
+one, it raises its own privileges, and the machine is then open to the platform's fake
+Steam windows. The `cheatdetector[.]shop` domain, the Counter-Strike and Rust themed
+domains on the same servers, programs named `SteamClient.exe`, and one sample's build
+path `12rwqr-main/DWASDAS/SteamClient.exe` (which looks like the author's own project
+folder) all fit the same picture. We have not tied a specific cheat download to a
+specific hijacked account.
+
 ## How the lures reached people
 
 Both hijacked accounts sent the images to existing contacts, which is what makes the
@@ -200,106 +303,6 @@ Google site-verification token (`me9ZlrZsMXh3rGKrjmph4_LMHQaPgsy3QXb3b_buz_M`), 
 appear on the operator's other domains.
 
 </div>
-
-## The same platform's malware
-
-VirusTotal links 16 Windows programs to the main phishing server. We downloaded all of
-them for static analysis and ran none. They fall into two families of fake Steam apps.
-
-<div class="callout ok" markdown="1">
-
-**Full technical analysis.** CORD's complete static analysis of one representative from
-each family, with every function, evidence item, detection anchor and unknown:
-
-- [The WebView2 fake Steam app (f27af032)](../2026-10-steam-lure-webview2/index.html)
-- [The NSIS and Electron fake Steam installer (c8628650)](../2026-10-steam-lure-electron/index.html)
-
-</div>
-
-### Fake Steam windows (WebView2), 11 samples
-
-Eleven are 1 MB 64-bit programs, nearly all named `steam.exe` or `Steam.exe`. When
-they run they copy themselves under random names such as `C:\Windows\q3e342g.exe`. One
-used the real Steam install path, `C:\Program Files (x86)\Steam\steam.exe`. Ten share
-the same five bundled files, so they come from one builder. They were first submitted to
-VirusTotal between 2026-09-21 and 2026-10-17. Detection ranges from 3 to 40 engines.
-
-We analysed a representative (`f27af032…`, 40 detections) in depth. What it does:
-
-<div class="flow">
-<div>Takes a single-instance lock, so a second copy waits for the first to exit.</div>
-<div>Writes Microsoft's own <code>WebView2Loader.dll</code>, carried as a 164 KB resource (RCDATA 300), to disk. The DLL is genuine and signed by Microsoft. It is there so the fake window works on any machine.</div>
-<div>Opens a frameless, dark, DPI-aware window built on Microsoft Edge WebView2, styled like a Steam sign-in. It stays hidden for 1.5 seconds, then appears in front.</div>
-<div>Loads its page from <code>hxxps://8909451279.f1shh[.]at/client</code>, the same phishing host we fetched.</div>
-<div>Gives that page a JSON message bridge to native code. Through it the page can read any file by path, write any file, and open URLs or programs.</div>
-<div>Builds a machine fingerprint from the process ID, tick count and locale, mixed with fixed XOR constants, and sends it with its web requests (WinInet, 15 s and 30 s timeouts).</div>
-</div>
-
-The result is a remote-controlled credential trap. The program itself holds no stealing
-logic: the operator's server decides what the window shows, and the bridge lets that
-page read and write files on the machine. That covers Steam's local session files as
-well as browser data, and the operator can change what it takes without shipping a new
-program.
-
-<div class="callout" markdown="1">
-
-**Correction.** An earlier version of this report called the RCDATA 300 resource an
-unanalysed second-stage program. It is Microsoft's signed `WebView2Loader.dll`
-(SHA-256 `a9a09232…`, 0 detections), not malware. Do not block it by hash.
-
-</div>
-
-### Fake Steam installers (NSIS and Electron), 5 samples
-
-Five 61 MB files are NSIS 3 installers, with 0 to 2 detections. They are built in
-three layers:
-
-<div class="flow">
-<div><strong>NSIS installer.</strong> Stock NSIS code. Its version info and icon pose as Valve. It unpacks a 63 MB 7-zip archive and starts the payload with no window (<code>CREATE_NO_WINDOW</code>).</div>
-<div><strong>Electron app.</strong> A renamed Chromium/Electron runtime with an <code>app.asar</code>. Its <code>package.json</code> says <code>"name": "steam-login-app"</code> and author "Valve Corporation". The 44-byte <code>main.js</code> just loads <code>main.jsc</code> through bytenode.</div>
-<div><strong>Compiled payload.</strong> <code>main.jsc</code> is 93 KB of V8 bytecode, which hides the source. Its strings show a <code>BrowserWindow</code> with Node integration on and context isolation off, a <code>TARGET_URLS</code> list, injected CSS and JavaScript in a dark Steam-like theme, browser storage and service-worker access, and two operator hosts that serve the sign-in page and receive what it collects: <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
-</div>
-
-This is the same idea as the WebView2 programs, rebuilt on Electron: a convincing
-Steam window that the victim signs in to, with full access to the machine behind it.
-The two hosts it calls serve the platform's Russian-language Steam page, built to fill
-an Electron window (a CSS comment reads "фон как в Electron", "background as in
-Electron"), with a `showAuthWin` hook that opens the sign-in overlay.
-
-All five installers carry the same `package.json` (version `10.50.87.67`). Their builds
-show the author at work:
-
-| Build | First seen | Payload |
-|---|---|---|
-| `a0eb8249…` | 2026-09-19 | Obfuscated JavaScript (`main.js`, 87 KB) with `TARGET_URLS`, `ANTI_DELETE`, `PROCESS_PROTECTION` and `WATCHER_SCRIPT` features |
-| `b136e43b…` | 2026-09-22 | Same, rebuilt |
-| `6b3bb3be…` | 2026-10-03 | Compiled V8 bytecode (`main.jsc`, 124 KB) |
-| `64465b46…` | 2026-10-04 | Bytecode, calls `pulse-keys[.]store/6887` |
-| `c8628650…` | October | Bytecode (93 KB), calls `fakefake[.]shop/3253523` and `pulse-keys[.]store/6887` |
-
-The switch from readable JavaScript to bytecode in early October hid the logic from
-static scanners, which fits the installers' 0 to 2 detections.
-
-### Fake game cheats: how victims get infected
-
-VirusTotal shows 18 more programs calling `fakefake[.]shop`. They are named after game
-cheats, injectors and macro tools, and every one that has a label is flagged as a UAC
-bypass dropper (`trojan.bypassuac`, 7 to 32 engines):
-
-> Arcane, Covchec, Division, Evicted Macros, Exlab, Extreme, Fecurity, Hyper, Mason,
-> Medusa Lite, Mira, Permanent, Phantom injector, SMG Software, Unicore, Visor
-
-They first appeared between 2026-08-02 and 2026-08-14, a month before the earliest fake
-Steam installer. Several ran from a temporary unpack folder, the pattern of a
-self-extracting "cheat" download.
-
-This fills the gap in the delivery story. A gamer looking for a cheat downloads a fake
-one, it raises its own privileges, and the machine is then open to the platform's fake
-Steam windows. The `cheatdetector[.]shop` domain, the Counter-Strike and Rust themed
-domains on the same servers, programs named `SteamClient.exe`, and one sample's build
-path `12rwqr-main/DWASDAS/SteamClient.exe` (which looks like the author's own project
-folder) all fit the same picture. We have not tied a specific cheat download to a
-specific hijacked account.
 
 ## Lane 2: the MrBeast crypto-casino scam
 
