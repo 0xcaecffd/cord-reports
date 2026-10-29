@@ -1,0 +1,1451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From a PHP flaw to a global botnet: PHP2Shell and the potassium Mirai lineage | CORD Reports</title>
+<meta name="description" content="Executive debrief. A critical PHP session flaw exploited within hours of its patch, the encrypted Mirai-derived DDoS bot pushed through it, and the operator behind it, down to decoy DNS, a blockchain C2 fallback and a money trail that reaches named exchanges.">
+<link rel="icon" href="../../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/tokens.css">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<header class="top"><div class="in">
+<a class="brand" href="../../index.html" aria-label="CORD Reports home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 199.4 27" width="299" height="40" role="img" aria-label="CORD Research"><title>CORD Research</title><defs><linearGradient id="cord-sweep-research" gradientUnits="userSpaceOnUse" x1="6.9" y1="0" x2="63.7" y2="0"><stop offset="0.000" style="stop-color:var(--part-cluster-mark,#0f9d8a)"/><stop offset="0.333" style="stop-color:var(--part-optimize-mark,#1a8fc4)"/><stop offset="0.667" style="stop-color:var(--part-research-mark,#5b63f5)"/><stop offset="1.000" style="stop-color:var(--part-detection-mark,#8b5cf6)"/></linearGradient></defs><path d="M13,8.9 A6.5,6.5 0 1 0 13,18.1 M18.4,13.5 A6.5,6.5 0 1 1 31.4,13.5 A6.5,6.5 0 1 1 18.4,13.5 M36.8,20 V7 M36.8,13.5 A6.5,6.5 0 0 1 43.3,7 H45.3 M63.7,1 V20 M50.7,13.5 A6.5,6.5 0 1 1 63.7,13.5 A6.5,6.5 0 1 1 50.7,13.5" stroke="url(#cord-sweep-research)" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M70.8,4 V23" stroke="currentColor" stroke-width="1.2" opacity=".35"/><path d="M77.2,20 V7 M77.2,13.5 A6.5,6.5 0 0 1 83.7,7 H85.7 M90.1,13.5 H103.1 A6.5,6.5 0 1 0 101.2,18.1 M117.5,9.3 C116.5,7.7 114.8,7 112.5,7 C109.8,7 107.8,8.4 107.8,10.4 C107.8,12.6 109.9,13.1 112.5,13.6 C115.2,14.1 117.5,14.6 117.5,16.8 C117.5,18.9 115.3,20 112.5,20 C110.2,20 108.3,19.3 107.3,17.7 M121.9,13.5 H134.9 A6.5,6.5 0 1 0 133,18.1 M152.3,7 V20 M139.3,13.5 A6.5,6.5 0 1 1 152.3,13.5 A6.5,6.5 0 1 1 139.3,13.5 M156.7,20 V7 M156.7,13.5 A6.5,6.5 0 0 1 163.2,7 H165.2 M180.7,8.9 A6.5,6.5 0 1 0 180.7,18.1 M185.1,1 V20 M185.1,13.5 A6.5,6.5 0 0 1 198.1,13.5 V20" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--logo-accent,#5b63f5)"/></svg></a>
+<span class="site">Reports</span>
+<nav><a href="../../index.html">All reports</a><a href="../../about.html">About</a></nav>
+</div></header>
+<main class="wrap report">
+<section class="hero">
+<div class="meta"><span class="pill tlp">TLP:CLEAR</span><span class="pill">php</span><span class="pill">mirai</span><span class="pill">ddos</span><span class="pill">linux</span><span class="pill">blockchain</span></div>
+<h1>From a PHP flaw to a global botnet: PHP2Shell and the potassium Mirai lineage</h1>
+<p class="sub">Executive debrief. A critical PHP session flaw exploited within hours of its patch, the encrypted Mirai-derived DDoS bot pushed through it, and the operator behind it, down to decoy DNS, a blockchain C2 fallback and a money trail that reaches named exchanges.</p>
+<p class="sub small">Published 2026-10-27</p>
+</section>
+<div class="cols">
+<aside class="toc"><div class="toc-in"><div class="toc-h">Contents</div><div class="toc">
+<ul>
+<li><a href="#act-i-the-exploit-php2shell">Act I: the exploit (PHP2Shell)</a><ul>
+<li><a href="#what-the-flaw-is">What the flaw is</a></li>
+<li><a href="#why-hard-to-exploit-was-wrong">Why "hard to exploit" was wrong</a></li>
+<li><a href="#what-this-means-for-defenders">What this means for defenders</a></li>
+</ul>
+</li>
+<li><a href="#act-ii-the-payload-we-caught-in-the-wild">Act II: the payload we caught in the wild</a><ul>
+<li><a href="#the-wider-family-and-our-confidence">The wider family and our confidence</a></li>
+</ul>
+</li>
+<li><a href="#act-iii-the-operator">Act III: the operator</a><ul>
+<li><a href="#their-infrastructure">Their infrastructure</a></li>
+<li><a href="#the-sleight-of-hand-decoy-dns">The sleight of hand: decoy DNS</a></li>
+<li><a href="#a-c2-fallback-on-the-blockchain">A C2 fallback on the blockchain</a></li>
+<li><a href="#following-the-money">Following the money</a></li>
+<li><a href="#what-their-tradecraft-tells-us">What their tradecraft tells us</a></li>
+</ul>
+</li>
+<li><a href="#what-to-do-about-it">What to do about it</a><ul>
+<li><a href="#detect-the-exploitation">Detect the exploitation</a></li>
+<li><a href="#detect-the-malware">Detect the malware</a></li>
+<li><a href="#block-and-hunt-the-infrastructure">Block and hunt the infrastructure</a></li>
+</ul>
+</li>
+<li><a href="#appendix-indicators">Appendix: indicators</a><ul>
+<li><a href="#a1-the-sample">A1. The sample</a></li>
+<li><a href="#a2-hostnames-in-the-samples-string-store">A2. Hostnames in the sample's string store</a></li>
+<li><a href="#a4-ethereum-mainnet-state-of-the-ens-names-read-only-lookups-2026-10-22">A4. Ethereum mainnet state of the ENS names (read-only lookups, 2026-10-22)</a></li>
+<li><a href="#a5-ports-process-names-paths-resolvers">A5. Ports, process names, paths, resolvers</a></li>
+<li><a href="#a6-domains">A6. Domains</a></li>
+<li><a href="#a7-real-c2-and-hosting-addresses">A7. Real C2 and hosting addresses</a></li>
+<li><a href="#a9-urls">A9. URLs</a></li>
+<li><a href="#a10-execution-parents-and-files-tied-to-the-infrastructure">A10. Execution parents and files tied to the infrastructure</a></li>
+<li><a href="#a11-operator-wallets-ethereum-read-only-lookups-2026-10-22">A11. Operator wallets (Ethereum, read-only lookups 2026-10-22)</a></li>
+<li><a href="#a12-related-sample-hashes">A12. Related sample hashes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></aside>
+<details class="toc-m"><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#act-i-the-exploit-php2shell">Act I: the exploit (PHP2Shell)</a><ul>
+<li><a href="#what-the-flaw-is">What the flaw is</a></li>
+<li><a href="#why-hard-to-exploit-was-wrong">Why "hard to exploit" was wrong</a></li>
+<li><a href="#what-this-means-for-defenders">What this means for defenders</a></li>
+</ul>
+</li>
+<li><a href="#act-ii-the-payload-we-caught-in-the-wild">Act II: the payload we caught in the wild</a><ul>
+<li><a href="#the-wider-family-and-our-confidence">The wider family and our confidence</a></li>
+</ul>
+</li>
+<li><a href="#act-iii-the-operator">Act III: the operator</a><ul>
+<li><a href="#their-infrastructure">Their infrastructure</a></li>
+<li><a href="#the-sleight-of-hand-decoy-dns">The sleight of hand: decoy DNS</a></li>
+<li><a href="#a-c2-fallback-on-the-blockchain">A C2 fallback on the blockchain</a></li>
+<li><a href="#following-the-money">Following the money</a></li>
+<li><a href="#what-their-tradecraft-tells-us">What their tradecraft tells us</a></li>
+</ul>
+</li>
+<li><a href="#what-to-do-about-it">What to do about it</a><ul>
+<li><a href="#detect-the-exploitation">Detect the exploitation</a></li>
+<li><a href="#detect-the-malware">Detect the malware</a></li>
+<li><a href="#block-and-hunt-the-infrastructure">Block and hunt the infrastructure</a></li>
+</ul>
+</li>
+<li><a href="#appendix-indicators">Appendix: indicators</a><ul>
+<li><a href="#a1-the-sample">A1. The sample</a></li>
+<li><a href="#a2-hostnames-in-the-samples-string-store">A2. Hostnames in the sample's string store</a></li>
+<li><a href="#a4-ethereum-mainnet-state-of-the-ens-names-read-only-lookups-2026-10-22">A4. Ethereum mainnet state of the ENS names (read-only lookups, 2026-10-22)</a></li>
+<li><a href="#a5-ports-process-names-paths-resolvers">A5. Ports, process names, paths, resolvers</a></li>
+<li><a href="#a6-domains">A6. Domains</a></li>
+<li><a href="#a7-real-c2-and-hosting-addresses">A7. Real C2 and hosting addresses</a></li>
+<li><a href="#a9-urls">A9. URLs</a></li>
+<li><a href="#a10-execution-parents-and-files-tied-to-the-infrastructure">A10. Execution parents and files tied to the infrastructure</a></li>
+<li><a href="#a11-operator-wallets-ethereum-read-only-lookups-2026-10-22">A11. Operator wallets (Ethereum, read-only lookups 2026-10-22)</a></li>
+<li><a href="#a12-related-sample-hashes">A12. Related sample hashes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</details>
+<article class="prose"><div class="cards">
+<div class="card"><div class="k">Detection at discovery</div><div class="v">4 / ~65</div></div>
+<div class="card"><div class="k">Related builds found</div><div class="v">36+</div></div>
+<div class="card"><div class="k">Real C2 servers recovered</div><div class="v">9</div></div>
+<div class="card"><div class="k">YARA false positives on clean software</div><div class="v">0</div></div>
+</div>
+
+<p>This is one connected story in three acts. First, a pair of critical PHP flaws that
+early reporting called hard to exploit, which our lab showed to be exploitable on
+default installations. Second, the malware attackers pushed through that hole within
+hours of disclosure, which we caught in the wild. Third, the crew behind it: their
+tools, their infrastructure, and a money trail on the blockchain that runs back to
+named exchanges.</p>
+<p>The full indicator list is in the <a href="#appendix-indicators">appendix</a> and in
+<a href="iocs.csv">iocs.csv</a>. We name no individuals. Attribution is to a group, defined by its
+code, its infrastructure and its wallets.</p>
+<div class="callout bad">
+<p><strong>Patch now.</strong> PHP 8.3.36 and later fix CVE-2026-109618 and CVE-2026-109619. If you run
+PHP with sessions enabled and cannot patch today, see
+<a href="#detect-the-exploitation">Detect the exploitation</a>.</p>
+</div>
+<h2 id="act-i-the-exploit-php2shell">Act I: the exploit (PHP2Shell)<a class="headerlink" href="#act-i-the-exploit-php2shell" title="Permanent link">#</a></h2>
+<h3 id="what-the-flaw-is">What the flaw is<a class="headerlink" href="#what-the-flaw-is" title="Permanent link">#</a></h3>
+<p>CVE-2026-109618 and CVE-2026-109619 are use-after-free bugs in PHP's session
+upload-progress handling. When a request runs out of memory while PHP is still parsing
+it, PHP abandons the request without the normal clean-up and leaves stale pointers in
+its memory allocator. A follow-up request to the same worker then reads that corrupted
+memory before any application code runs. Both were patched in PHP 8.3.36 while already
+being exploited in the wild.</p>
+<h3 id="why-hard-to-exploit-was-wrong">Why "hard to exploit" was wrong<a class="headerlink" href="#why-hard-to-exploit-was-wrong" title="Permanent link">#</a></h3>
+<p>Early public reporting said exploitation needed an unusually low memory limit
+(<code>memory_limit=8M</code>). Our lab reproduction showed that is not true. A stock installation
+with the default 128 MB limit can be driven out of memory by a request of a few hundred
+kilobytes, well inside the default upload size, because of how PHP builds its internal
+upload metadata. The attack traffic looks like ordinary form data, not a large or
+unusual payload.</p>
+<p>Results from default Docker images:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Build</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PHP 8.3.35 (vulnerable)</td>
+<td>Worker crashes in 14 of 15 test rounds, with the crash inside PHP's allocator</td>
+</tr>
+<tr>
+<td>PHP 8.3.36 (patched)</td>
+<td>0 crashes in 261 runs of identical traffic</td>
+</tr>
+</tbody>
+</table></div>
+<p>Follow-on lab work turned the crash into working remote code execution as the web
+server user on unpatched builds, with unauthenticated HTTP access only. We are not
+publishing the exploitation details.</p>
+<p>During the same work we identified a further, separate PHP session issue. It is in
+coordinated disclosure and is not described here.</p>
+<h3 id="what-this-means-for-defenders">What this means for defenders<a class="headerlink" href="#what-this-means-for-defenders" title="Permanent link">#</a></h3>
+<ul>
+<li>Treat any PHP 8.x below 8.3.36 that uses sessions as remotely exploitable, whatever
+  its memory settings.</li>
+<li>Detection that looks for an oversized upload misses this attack. Look for the
+  behaviour instead (see <a href="#what-to-do-about-it">What to do</a>).</li>
+</ul>
+<h2 id="act-ii-the-payload-we-caught-in-the-wild">Act II: the payload we caught in the wild<a class="headerlink" href="#act-ii-the-payload-we-caught-in-the-wild" title="Permanent link">#</a></h2>
+<p>Within hours of the patch, attackers were using this flaw to plant a second-stage bot.
+We obtained the sample. It turned out to be far more than a run-of-the-mill Mirai copy
+(Mirai being the widely copied botnet code that most Linux DDoS malware descends from).</p>
+<p><strong>What it is.</strong> A Linux DDoS bot: software that turns a compromised server into a
+foot soldier for knocking other sites offline. It does not spread on its own. It is
+placed onto servers through the PHP2Shell exploit. It is the newest build of a family
+that Nokia Deepfield documented in May 2026 under the name <strong>potassium</strong>, and the same
+binary the research firm ELLIO identified on 2026-10-22 as the PHP2Shell second stage,
+seen in the wild the day before.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SHA-256</td>
+<td><code>0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486</code></td>
+</tr>
+<tr>
+<td>MD5</td>
+<td><code>b61a098fc62a2c2696e196dca78da71a</code></td>
+</tr>
+<tr>
+<td>File</td>
+<td>ELF64 x86-64, statically linked, stripped, 179,632 bytes</td>
+</tr>
+<tr>
+<td>Detection at discovery</td>
+<td>4 of about 65 engines, heuristic only</td>
+</tr>
+<tr>
+<td>Delivered via</td>
+<td>Loader fetched from <code>hxxp://92.118.112[.]100/nfs</code>, run as <code>./nfs php</code>; loader source <code>45.198.224[.]169</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why it stands out.</strong> Ordinary Mirai copies leave their settings and tell-tale text in
+plain sight. This one encrypts everything: a 476-slot string table locked under
+ChaCha20, with even the cipher's own constant masked. Its link back to the operators
+uses modern cryptography (X25519 key exchange, ChaCha20-Poly1305). It can open a remote
+shell, hide its own process and update itself. It lies about where its control server
+is (see Act III). And the scanner classic Mirai uses to spread on its own has been
+removed: this build is placed deliberately by a loader rather than spreading like a
+worm.</p>
+<h3 id="the-wider-family-and-our-confidence">The wider family and our confidence<a class="headerlink" href="#the-wider-family-and-our-confidence" title="Permanent link">#</a></h3>
+<p>This sample is one build off a production line. We scored every related file in the
+CORD corpus and ran four detection rules back across a year of global malware
+submissions. Ranked by how sure we are:</p>
+<ul>
+<li><strong>Same operator, high confidence.</strong> Two x86-64 sibling builds, <code>6f272c85365a…</code>
+  (2026-10-04) and <code>b58cf55ad3e6…</code> (2026-09-23), carry the same encrypted blockchain
+  settings and overlapping control-server lists once decrypted. This sample and
+  <code>6f272c85365a…</code> share two control-server hosts outright. Both build lines registered
+  their blockchain names through the same service and point at the same
+  operator-specific resolver.</li>
+<li><strong>Same operator, likely.</strong> Six ARM builds from September and October 2026. One of
+  them (<code>5420b2745e8d…</code>) was seen reaching the same control server as our sample.</li>
+<li><strong>Same toolkit, operator unproven.</strong> Three un-stripped "developer" builds that
+  shipped with their source-file names intact, plus two older ARM builds.</li>
+<li><strong>Fresh finds (2026-10-22).</strong> Our retrohunt surfaced 23 more in-the-wild builds:
+  six x86-64 and seventeen ARM, SuperH and x86, including versions bundled inside
+  Android app packages. Our four rules flagged all of them with no false alarms on
+  clean software.</li>
+</ul>
+<p>This is an actively maintained, multi-platform family, from Linux servers to Android
+devices.</p>
+<h2 id="act-iii-the-operator">Act III: the operator<a class="headerlink" href="#act-iii-the-operator" title="Permanent link">#</a></h2>
+<p>The crew is careful, but careful people are consistent, and consistency makes a pattern.</p>
+<h3 id="their-infrastructure">Their infrastructure<a class="headerlink" href="#their-infrastructure" title="Permanent link">#</a></h3>
+<p>They rotate their control-server domains on a schedule: a new <code>.st</code> domain every few
+weeks (with one two-month gap over the summer), bought through two small resellers,
+each dressed up with a legitimate-looking web page, with the real control servers on
+short subdomains. Their hosting spans Estonia, France, Switzerland, Russia, Armenia and
+DigitalOcean. New infrastructure typically goes live about a week before a new build
+ships.</p>
+<h3 id="the-sleight-of-hand-decoy-dns">The sleight of hand: decoy DNS<a class="headerlink" href="#the-sleight-of-hand-decoy-dns" title="Permanent link">#</a></h3>
+<p>When the bot looks up its control domain, it never connects to the address it gets
+back. It scrambles that address first. Older builds swap the two halves. This build
+keeps the first number and rotates the rest. The addresses anyone can see in DNS point
+at university, military and ordinary consumer networks: innocent bystanders.
+<strong>Blocking the published address does nothing, and would hurt the wrong people.</strong> We
+reversed the scramble and recovered the real servers, including the live one at
+<code>134.199.154[.]64</code> (DigitalOcean), plus eight more behind the group's other hosts.</p>
+<h3 id="a-c2-fallback-on-the-blockchain">A C2 fallback on the blockchain<a class="headerlink" href="#a-c2-fallback-on-the-blockchain" title="Permanent link">#</a></h3>
+<p>The configuration holds a backup plan. If the domains are ever taken down, the bot can
+look up its control-server address on the <strong>Ethereum blockchain</strong> instead, a public
+ledger that no registrar or hosting provider can switch off. It reads a text record
+labelled <code>ip</code> from three ENS names: <code>2sexy4u[.]eth</code> and <code>sushiconsumer[.]eth</code> (this
+sample) and <code>catswithhatslolksjhakf[.]eth</code> (the siblings), through the public ENS
+registry and one operator-specific resolver
+(<code>0xf29100983e058b709f3d539b0c765937b804ac15</code>). This build does not use it yet: the
+feature is built but not switched on. The values parked there appear to be scrambled
+with the same decoy trick. Unwinding three of the October values with this build's
+scramble lands them in the same DigitalOcean range as the live server.</p>
+<h3 id="following-the-money">Following the money<a class="headerlink" href="#following-the-money" title="Permanent link">#</a></h3>
+<p>Because the blockchain is public, we could read who owns those names and who paid for
+them. This is the strongest thread in the investigation.</p>
+<ul>
+<li><strong>Two wallets, one playbook.</strong> The sample's two names sit in one wallet
+  (<code>0x32ab9ef9…da7b</code>). The siblings' name sits in a second (<code>0xd5e34876…f995</code>). Both
+  registered through the same service and point at the same resolver: an on-chain tie
+  between the two build lines, on top of the control-server hosts they share in code.</li>
+<li><strong>The second wallet is a smart contract</strong>, an account-abstraction setup that keeps
+  the controlling key off the public ledger. It has been active since 2025, so it was
+  held in reserve rather than created for this campaign.</li>
+<li><strong>Both wallets were funded through throwaway relay wallets</strong>, used once and
+  discarded to break the trail. No mixer was used. The one anonymity step is a single
+  no-KYC swap (ChangeNOW) on one branch, so the trail is bent, not cut.</li>
+<li><strong>Both branches reach exchanges that know their customers.</strong> The relay that seeded
+  the smart-contract wallet was funded on 2025-06-10 by a <strong>Coinbase</strong> hot wallet
+  (<code>0xb5d85cbf…</code>). Coinbase verifies its account holders, so that withdrawal ties to an
+  account the exchange can identify under legal process.</li>
+<li><strong>The other branch</strong> runs through a busy shared cash-movement service. Money enters
+  it from a <strong>KuCoin</strong> wallet (<code>0x45300136…</code>) and leaves to a <strong>Binance</strong> deposit
+  address (<code>0x16f59CEf…</code>), with one detour through <strong>ChangeNOW</strong> (<code>0x3f3Ee0a9…</code>).
+  Because the service moves money for many unrelated people, KuCoin and Binance here are
+  leads to confirm, not proof.</li>
+</ul>
+<p>Every branch ends either at an exchange that keeps customer records or at the no-KYC
+swap. Naming anyone from here means legal process at those exchanges. Attribution stays
+with the operator group.</p>
+<h3 id="what-their-tradecraft-tells-us">What their tradecraft tells us<a class="headerlink" href="#what-their-tradecraft-tells-us" title="Permanent link">#</a></h3>
+<p>They are competent and deliberate: encrypted builds, rotating infrastructure, decoy
+addressing, disposable funding wallets, a blockchain fallback waiting in the wings, and
+wallet keys kept off the public record. The discipline is uneven, though. Developer
+builds slipped out with their internal file names, and the money trail touches a named
+exchange. Two soft signals, held loosely, point toward a European operator: their
+blockchain activity clusters between 06:00 and 14:00 UTC, and Deepfield observed
+Dutch-language content in an earlier campaign.</p>
+<h2 id="what-to-do-about-it">What to do about it<a class="headerlink" href="#what-to-do-about-it" title="Permanent link">#</a></h2>
+<h3 id="detect-the-exploitation">Detect the exploitation<a class="headerlink" href="#detect-the-exploitation" title="Permanent link">#</a></h3>
+<ul>
+<li>Upgrade to PHP 8.3.36 or later.</li>
+<li>Alert on bursts of <code>multipart/form-data</code> POSTs carrying <code>PHP_SESSION_UPLOAD_PROGRESS</code>
+  to pages that do not accept uploads.</li>
+<li>Alert on PHP workers that run out of memory and crash (SIGSEGV) in bursts.</li>
+<li>Alert on any web-server worker that starts a shell and then downloads a file.</li>
+</ul>
+<h3 id="detect-the-malware">Detect the malware<a class="headerlink" href="#detect-the-malware" title="Permanent link">#</a></h3>
+<p>Four YARA rules cover the family across architectures with no hits on clean software
+(16,686 ELF samples, 4,699 Linux system binaries and 1,542 Windows files tested):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="rules/elf_mirai_ext_x64_build_family.yar"><code>elf_mirai_ext_x64_build_family</code></a></td>
+<td>x86-64 builds from this code generator (tight)</td>
+</tr>
+<tr>
+<td><a href="rules/elf_mirai_ext_x64_chacha_lineage.yar"><code>elf_mirai_ext_x64_chacha_lineage</code></a></td>
+<td>x86-64 builds with the lineage's ChaCha20 routine</td>
+</tr>
+<tr>
+<td><a href="rules/elf_mirai_ext_multiarch_literals.yar"><code>elf_mirai_ext_multiarch_literals</code></a></td>
+<td>Any architecture, by literal-pool constants</td>
+</tr>
+<tr>
+<td><a href="rules/elf_masked_chacha_constant_survey.yar"><code>elf_masked_chacha_constant_survey</code></a></td>
+<td>Wide survey rule for triage</td>
+</tr>
+</tbody>
+</table></div>
+<p>All four in one file: <a href="rules/potassium-all.yar">potassium-all.yar</a>.</p>
+<h3 id="block-and-hunt-the-infrastructure">Block and hunt the infrastructure<a class="headerlink" href="#block-and-hunt-the-infrastructure" title="Permanent link">#</a></h3>
+<ul>
+<li>Block the <strong>real, recovered</strong> control servers in the appendix, never the published
+  DNS answers, which belong to bystanders.</li>
+<li>On Linux hosts, look for a loopback listener on TCP port 1234, a hidden directory at
+  <code>/var/tmp/.cache/sysd</code>, files at <code>/tmp/.manta</code> or <code>/tmp/.xwiki</code>, and a process whose
+  <code>/proc</code> entry is masked by another.</li>
+<li>Watch the three ENS names for record changes (a read-only query), watch for new <code>.st</code>
+  domains from the same two resellers, and pivot on the relay wallets.</li>
+</ul>
+<h2 id="appendix-indicators">Appendix: indicators<a class="headerlink" href="#appendix-indicators" title="Permanent link">#</a></h2>
+<p>Collected 2026-10-22 from the decrypted string store of the sample, the decoded stores of
+the two x86-64 siblings, VirusTotal relationships and passive DNS, and read-only Ethereum
+lookups, with the money trail extended on 2026-10-26. Hosts, IPs and URLs are defanged.
+Published DNS answers of the C2 hosts are decoys that point at bystanders and are left
+out on purpose.</p>
+<h3 id="a1-the-sample">A1. The sample<a class="headerlink" href="#a1-the-sample" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>hash</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>md5</td>
+<td><code>b61a098fc62a2c2696e196dca78da71a</code></td>
+</tr>
+<tr>
+<td>sha1</td>
+<td><code>c472dab4ff7c16782a8037f988d4daa6d4bdb343</code></td>
+</tr>
+<tr>
+<td>sha256</td>
+<td><code>0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486</code></td>
+</tr>
+<tr>
+<td>size</td>
+<td>179632 bytes</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a2-hostnames-in-the-samples-string-store">A2. Hostnames in the sample's string store<a class="headerlink" href="#a2-hostnames-in-the-samples-string-store" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>slot</th>
+<th>value</th>
+<th>role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x0</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x1</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x2</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x3</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x4</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x5</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x6</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x7</td>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x8</td>
+<td><code>2sexy4u[.]eth</code></td>
+<td>ENS name</td>
+</tr>
+<tr>
+<td>0x9</td>
+<td><code>sushiconsumer[.]eth</code></td>
+<td>ENS name</td>
+</tr>
+<tr>
+<td>0xa</td>
+<td><code>ethereum.publicnode.com</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0xb</td>
+<td><code>ethereum-rpc.publicnode.com</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0xc</td>
+<td><code>eth.drpc.org</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0xd</td>
+<td><code>1rpc.io</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0xe</td>
+<td><code>eth-mainnet.blockreq.com</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0xf</td>
+<td><code>ethereum-public.nodies.app</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0x10</td>
+<td><code>rpc.mevblocker.io</code></td>
+<td>public Ethereum JSON-RPC endpoint</td>
+</tr>
+<tr>
+<td>0x113</td>
+<td><code>hackattackkaboom[.]botlesscucks[.]st</code></td>
+<td>C2 host</td>
+</tr>
+<tr>
+<td>0x114</td>
+<td><code>hik[.]gettingheadfromduckysmom[.]st</code></td>
+<td>C2 host</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a4-ethereum-mainnet-state-of-the-ens-names-read-only-lookups-2026-10-22">A4. Ethereum mainnet state of the ENS names (read-only lookups, 2026-10-22)<a class="headerlink" href="#a4-ethereum-mainnet-state-of-the-ens-names-read-only-lookups-2026-10-22" title="Permanent link">#</a></h3>
+<p>ENS registry <code>0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e</code>; selectors <code>resolver(bytes32)</code> = <code>0x0178b8bf</code>, <code>text(bytes32,string)</code> = <code>0x59d1d43c</code>; text key <code>ip</code>.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>name</th>
+<th>carried by</th>
+<th>namehash</th>
+<th>resolver (equals store)</th>
+<th>owner (registry)</th>
+<th>expiry</th>
+<th>text <code>ip</code></th>
+<th><code>addr</code> record</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2sexy4u[.]eth</code></td>
+<td>sample</td>
+<td><code>0x21372c2e8f485fe1666dc12be5709f2e63214a4b79f076daa287a959e4c2d514</code></td>
+<td><code>0xf29100983e058b709f3d539b0c765937b804ac15</code> (yes)</td>
+<td><code>0x32ab9ef9123a495ee7e68c3c18de94c401e8da7b</code></td>
+<td>2030-10-13</td>
+<td><code>143[.]220[.]202[.]110</code></td>
+<td><code>0x32ab9ef9123a495ee7e68c3c18de94c401e8da7b</code></td>
+</tr>
+<tr>
+<td><code>catswithhatslolksjhakf[.]eth</code></td>
+<td>x86-64 siblings</td>
+<td><code>0x022d83e68fb35299866ff21bbff6c7aaf73092c07a5c14448363005f12832024</code></td>
+<td><code>0xf29100983e058b709f3d539b0c765937b804ac15</code> (yes)</td>
+<td><code>0xd5e348763fef825c36ad60a4294567187cc9f995</code></td>
+<td>2027-09-10</td>
+<td><code>49[.]6[.]172[.]233</code></td>
+<td><code>0xd5e348763fef825c36ad60a4294567187cc9f995</code></td>
+</tr>
+<tr>
+<td><code>sushiconsumer[.]eth</code></td>
+<td>sample</td>
+<td><code>0x46e5a3d52c2bd76e560a74cf4c104f7e219daa40586021854bd404d65d5ad6de</code></td>
+<td><code>0xf29100983e058b709f3d539b0c765937b804ac15</code> (yes)</td>
+<td><code>0x32ab9ef9123a495ee7e68c3c18de94c401e8da7b</code></td>
+<td>2029-10-13</td>
+<td><code>(absent)</code></td>
+<td><code>0x32ab9ef9123a495ee7e68c3c18de94c401e8da7b</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Record history (Blockscout log API, read once on 2026-10-22; the values of the superseded records were not retained and a re-read was rate-limited): the first name has <code>NewResolver</code> events on 2022-05-24 and 2026-10-13 and eleven <code>TextChanged</code> events with keys <code>ip</code>, <code>ip1</code>, <code>ip2</code>, <code>ip4</code>, <code>readme</code>, of which four <code>ip</code> changes within hours on 2026-10-14 over three distinct values; the second name has one <code>NewResolver</code> on 2026-09-10 and one <code>ip</code> set on 2026-09-11; the third has one <code>NewResolver</code> on 2026-10-13 and no text record.</p>
+<p>Public RPC endpoints in the store (the bot would use these; they are legitimate providers and not blockable indicators): <code>ethereum.publicnode.com</code>, <code>ethereum-rpc.publicnode.com</code>, <code>eth.drpc.org</code>, <code>1rpc.io</code>, <code>eth-mainnet.blockreq.com</code>, <code>ethereum-public.nodies.app</code>, <code>rpc.mevblocker.io</code>.</p>
+<h3 id="a5-ports-process-names-paths-resolvers">A5. Ports, process names, paths, resolvers<a class="headerlink" href="#a5-ports-process-names-paths-resolvers" title="Permanent link">#</a></h3>
+<ul>
+<li>C2 ports (random pick from 14): <code>50217, 50341, 50488, 50613, 50792, 50904, 51127, 51289, 51456, 51603, 51871, 52134, 52398, 52645</code></li>
+<li>loopback single-instance lock: TCP <code>1234</code> (retry counter 0x1a); stock Mirai uses 48101</li>
+<li>process names adopted after daemonising (prctl and argv[0]): <code>telnetd</code>, <code>udhcpc</code>, <code>upnpd</code>, <code>watchdog</code>, <code>syslogd</code>, <code>klogd</code>, <code>uhttpd</code>, <code>uchttpd</code></li>
+<li>potassium markers in the store: <code>Segmentation fault (core dumped)</code>, <code>big brother is watching</code>, <code>dvrInside</code>, <code>dvrLocker</code>, <code>im in the matrix</code></li>
+<li>shell paths: <code>/apex/com.android.runtime/bin/sh</code>, <code>/data/local/tmp/sh</code>, <code>/sbin/sh</code>, <code>/system/bin/sh</code>, <code>/usr/bin/sh</code>, <code>/vendor/bin/sh</code></li>
+<li>watchdog devices: <code>/dev/misc/watchdog</code>, <code>/dev/watchdog</code></li>
+<li>on-disk install path seen in VirusTotal in-the-wild names of core builds: <code>/var/tmp/.cache/sysd</code></li>
+<li>additional drop paths seen in retrohunt matches (2026-10-22): <code>/tmp/.manta</code>, <code>/tmp/.xwiki</code></li>
+<li>embedded DNS resolvers (18, used for the bot's own lookups; legitimate public resolvers): <code>8[.]8[.]8[.]8</code>, <code>8[.]8[.]4[.]4</code>, <code>1[.]1[.]1[.]1</code>, <code>1[.]0[.]0[.]1</code>, <code>208[.]67[.]222[.]222</code>, <code>208[.]67[.]220[.]220</code>, <code>9[.]9[.]9[.]9</code>, <code>149[.]112[.]112[.]112</code>, <code>94[.]140[.]14[.]14</code>, <code>94[.]140[.]15[.]15</code>, <code>114[.]114[.]114[.]114</code>, <code>114[.]114[.]115[.]115</code>, <code>223[.]5[.]5[.]5</code>, <code>223[.]6[.]6[.]6</code>, <code>119[.]29[.]29[.]29</code>, <code>180[.]76[.]76[.]76</code>, <code>64[.]6[.]64[.]6</code>, <code>64[.]6[.]65[.]6</code></li>
+</ul>
+<h3 id="a6-domains">A6. Domains<a class="headerlink" href="#a6-domains" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>domain</th>
+<th>kind</th>
+<th>registered</th>
+<th>registrar</th>
+<th>VT malicious</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>abuse[.]st</code></td>
+<td>apex</td>
+<td>2026-05-29</td>
+<td>StanCo and Istanco</td>
+<td>0</td>
+<td>0 communicating files, 20 URLs</td>
+</tr>
+<tr>
+<td><code>botlesscucks[.]st</code></td>
+<td>apex</td>
+<td>2026-05-14</td>
+<td>StanCo and Istanco</td>
+<td>19</td>
+<td>0 communicating files, 20 URLs</td>
+</tr>
+<tr>
+<td><code>gettingheadfromduckysmom[.]st</code></td>
+<td>apex</td>
+<td>2026-09-29</td>
+<td>Sirdio</td>
+<td>0</td>
+<td>0 communicating files, 8 URLs</td>
+</tr>
+<tr>
+<td><code>godofthunder[.]st</code></td>
+<td>apex</td>
+<td>2026-10-12</td>
+<td>Sirdio</td>
+<td>2</td>
+<td>0 communicating files, 4 URLs</td>
+</tr>
+<tr>
+<td><code>iloveboats[.]st</code></td>
+<td>apex</td>
+<td>2026-08-03</td>
+<td>None</td>
+<td>19</td>
+<td>40 communicating files, 20 URLs</td>
+</tr>
+<tr>
+<td><code>potassium[.]st</code></td>
+<td>apex</td>
+<td>2026-06-06</td>
+<td>Sirdio</td>
+<td>11</td>
+<td>0 communicating files, 14 URLs</td>
+</tr>
+<tr>
+<td><code>dvrs[.]botlesscucks[.]st</code></td>
+<td>C2 host (siblings)</td>
+<td>2026-05-14</td>
+<td>StanCo and Istanco</td>
+<td>14</td>
+<td>16 communicating files, 2 URLs</td>
+</tr>
+<tr>
+<td><code>dvrs2[.]botlesscucks[.]st</code></td>
+<td>C2 host (siblings)</td>
+<td>2026-05-14</td>
+<td>StanCo and Istanco</td>
+<td>0</td>
+<td>0 communicating files, 0 URLs</td>
+</tr>
+<tr>
+<td><code>dvrs4[.]botlesscucks[.]st</code></td>
+<td>C2 host (siblings)</td>
+<td>2026-05-14</td>
+<td>StanCo and Istanco</td>
+<td>0</td>
+<td>0 communicating files, 0 URLs</td>
+</tr>
+<tr>
+<td><code>hackattackkaboom[.]botlesscucks[.]st</code></td>
+<td>C2 host (sample)</td>
+<td>2026-05-14</td>
+<td>StanCo and Istanco</td>
+<td>13</td>
+<td>0 communicating files, 4 URLs</td>
+</tr>
+<tr>
+<td><code>hik[.]gettingheadfromduckysmom[.]st</code></td>
+<td>C2 host (sample)</td>
+<td>2026-09-29</td>
+<td>Sirdio</td>
+<td>9</td>
+<td>1 communicating files, 2 URLs</td>
+</tr>
+<tr>
+<td><code>ijustgetsonervy[.]potassium[.]st</code></td>
+<td>host seen in relatives' sandbox DNS</td>
+<td>2026-06-06</td>
+<td>Sirdio</td>
+<td>11</td>
+<td>5 communicating files, 2 URLs</td>
+</tr>
+<tr>
+<td><code>thunder[.]godofthunder[.]st</code></td>
+<td>C2 host (sample)</td>
+<td>2026-10-12</td>
+<td>Sirdio</td>
+<td>3</td>
+<td>2 communicating files, 2 URLs</td>
+</tr>
+<tr>
+<td><code>urlhaus[.]abuse[.]st</code></td>
+<td>host seen in relatives' sandbox DNS</td>
+<td>2026-05-29</td>
+<td>StanCo and Istanco</td>
+<td>0</td>
+<td>1 communicating files, 0 URLs</td>
+</tr>
+</tbody>
+</table></div>
+<p>Siblings' C2 hosts by store slot: 6f272c85365a: <code>dvrs[.]botlesscucks[.]st</code>, <code>dvrs2[.]botlesscucks[.]st</code>, <code>dvrs4[.]botlesscucks[.]st</code>, <code>hackattackkaboom[.]botlesscucks[.]st</code>, <code>hik[.]gettingheadfromduckysmom[.]st</code>; b58cf55ad3e6: <code>dvrs[.]botlesscucks[.]st</code>, <code>dvrs2[.]botlesscucks[.]st</code>, <code>dvrs4[.]botlesscucks[.]st</code></p>
+<h3 id="a7-real-c2-and-hosting-addresses">A7. Real C2 and hosting addresses<a class="headerlink" href="#a7-real-c2-and-hosting-addresses" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>address</th>
+<th>AS</th>
+<th>country</th>
+<th>role</th>
+<th>evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>193[.]233[.]252[.]153</code></td>
+<td>215540 Global Connectivity Solutions Llp</td>
+<td>RU</td>
+<td>real C2 behind <code>urlhaus[.]abuse[.]st</code> (related)</td>
+<td>decoy answer <code>252[.]153[.]193[.]233</code> on 2026-07-28, transform halfswap; contacted by 2 relatives</td>
+</tr>
+<tr>
+<td><code>157[.]22[.]240[.]126</code></td>
+<td>215540 Global Connectivity Solutions Llp</td>
+<td>RU</td>
+<td>real C2 behind <code>ijustgetsonervy[.]potassium[.]st</code> (related)</td>
+<td>decoy answer <code>240[.]126[.]157[.]22</code> on 2026-08-09, transform halfswap; contacted by 3 relatives</td>
+</tr>
+<tr>
+<td><code>157[.]22[.]240[.]126</code></td>
+<td>215540 Global Connectivity Solutions Llp</td>
+<td>RU</td>
+<td>real C2 behind <code>dvrs[.]botlesscucks[.]st</code> (related)</td>
+<td>decoy answer <code>240[.]126[.]157[.]22</code> on 2026-09-12, transform halfswap; contacted by 3 relatives</td>
+</tr>
+<tr>
+<td><code>130[.]49[.]190[.]185</code></td>
+<td>215540 Global Connectivity Solutions Llp</td>
+<td>RU</td>
+<td>real C2 behind <code>dvrs[.]botlesscucks[.]st</code> (related)</td>
+<td>decoy answer <code>190[.]185[.]130[.]49</code> on 2026-09-22, transform halfswap; contacted by 2 relatives</td>
+</tr>
+<tr>
+<td><code>212[.]192[.]14[.]31</code></td>
+<td>207713 Global Internet Solutions LLC</td>
+<td>RU</td>
+<td>real C2 behind <code>dvrs[.]botlesscucks[.]st</code> (related)</td>
+<td>decoy answer <code>14[.]31[.]212[.]192</code> on 2026-09-25, transform halfswap; contacted by 2 relatives</td>
+</tr>
+<tr>
+<td><code>5[.]181[.]2[.]75</code></td>
+<td>None None</td>
+<td>None</td>
+<td>real C2 behind <code>dvrs[.]botlesscucks[.]st</code> (related)</td>
+<td>decoy answer <code>2[.]75[.]5[.]181</code> on 2026-10-02, transform halfswap; contacted by 2 relatives</td>
+</tr>
+<tr>
+<td><code>132[.]243[.]187[.]133</code></td>
+<td>219359 Edge Core FZE</td>
+<td>AM</td>
+<td>real C2 behind <code>dvrs[.]botlesscucks[.]st</code> (related)</td>
+<td>decoy answer <code>187[.]133[.]132[.]243</code> on 2026-10-04, transform halfswap; contacted by 2 relatives</td>
+</tr>
+<tr>
+<td><code>45[.]198[.]224[.]123</code></td>
+<td>None None</td>
+<td>None</td>
+<td>real C2 behind <code>hik[.]gettingheadfromduckysmom[.]st</code> (sample)</td>
+<td>decoy answer <code>224[.]123[.]45[.]198</code> on 2026-10-17, transform halfswap; contacted by 1 relatives</td>
+</tr>
+<tr>
+<td><code>45[.]198[.]224[.]124</code></td>
+<td>None None</td>
+<td>None</td>
+<td>real C2 behind <code>hik[.]gettingheadfromduckysmom[.]st</code> (sample)</td>
+<td>decoy answer <code>224[.]124[.]45[.]198</code> on 2026-10-19, transform halfswap; contacted by 1 relatives</td>
+</tr>
+<tr>
+<td><code>134[.]199[.]154[.]64</code></td>
+<td>DigitalOcean (per ELLIO)</td>
+<td>US</td>
+<td>real C2 behind <code>thunder[.]godofthunder[.]st</code> (sample)</td>
+<td>decoy answer <code>134[.]154[.]64[.]199</code> on 2026-10-21, transform rotate3; contacted by 1 relatives</td>
+</tr>
+<tr>
+<td><code>217[.]60[.]103[.]135</code></td>
+<td>209373 Swissnet LLC</td>
+<td>CH</td>
+<td>contacted by 2+ core builds (sandbox)</td>
+<td>40 communicating files on VirusTotal, 17 malicious votes</td>
+</tr>
+<tr>
+<td><code>1[.]122[.]168[.]192</code></td>
+<td>1221 Telstra Limited</td>
+<td>AU</td>
+<td>contacted by 2+ core builds (sandbox)</td>
+<td>27 communicating files on VirusTotal, 0 malicious votes</td>
+</tr>
+<tr>
+<td><code>49[.]6[.]172[.]233</code></td>
+<td>not announced</td>
+<td></td>
+<td>ENS <code>ip</code> record value of <code>catswithhatslolksjhakf[.]eth</code></td>
+<td>current on-chain value; no sample seen contacting it</td>
+</tr>
+</tbody>
+</table></div>
+<p>Published by ELLIO (2026-10-22) for the same sample: C2 address <code>134[.]199[.]154[.]64</code> (DigitalOcean, reached through the rotation from the decoy <code>134[.]154[.]64[.]199</code>), update host <code>117[.]55[.]202[.]115</code>, staging host <code>92[.]118[.]112[.]100</code> (AS215540) serving <code>hxxp://92[.]118[.]112[.]100/nfs</code>, loader source <code>45[.]198[.]224[.]169</code>. Of these, the C2 address appears among the contacted addresses of our relatives and the update host is the EE address above.</p>
+<h3 id="a9-urls">A9. URLs<a class="headerlink" href="#a9-urls" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>url</th>
+<th>source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hxxp://170[.]64[.]137[.]28/x86_64</code></td>
+<td>ITW URL of 5494394cdfb5</td>
+</tr>
+<tr>
+<td><code>hxxp://184[.]174[.]96[.]216/s7cn4[.]x86</code></td>
+<td>ITW URL of 4cae4c533e96</td>
+</tr>
+<tr>
+<td><code>hxxp://184[.]174[.]96[.]216/s7cn4[.]x86/</code></td>
+<td>ITW URL of 4cae4c533e96</td>
+</tr>
+<tr>
+<td><code>hxxp://45[.]135[.]193[.]63/flutter[.]m68k</code></td>
+<td>ITW URL of 95ca6596a568</td>
+</tr>
+<tr>
+<td><code>hxxp://45[.]135[.]193[.]63/m68k</code></td>
+<td>ITW URL of 95ca6596a568</td>
+</tr>
+<tr>
+<td><code>hxxp://45[.]74[.]3[.]24/bot[.]x86_64</code></td>
+<td>ITW URL of b7482848fb53</td>
+</tr>
+<tr>
+<td><code>hxxp://89[.]185[.]82[.]24/arm5</code></td>
+<td>ITW URL of 07b98716aa3f</td>
+</tr>
+<tr>
+<td><code>hxxp://89[.]185[.]82[.]24/arm6</code></td>
+<td>ITW URL of 9db8b250054f</td>
+</tr>
+<tr>
+<td><code>hxxp://89[.]185[.]82[.]24/arm7</code></td>
+<td>ITW URL of 8329ed49c67a; ITW URL of 9ae981175d5e</td>
+</tr>
+<tr>
+<td><code>hxxp://89[.]185[.]82[.]24/arm77</code></td>
+<td>ITW URL of 5420b2745e8d</td>
+</tr>
+<tr>
+<td><code>hxxp://89[.]185[.]82[.]24/sh4</code></td>
+<td>ITW URL of 2a937c301fb2</td>
+</tr>
+<tr>
+<td><code>hxxp://92[.]118[.]112[.]100/nfs</code></td>
+<td>ITW URL of 0c5486f06620</td>
+</tr>
+<tr>
+<td><code>hxxp://abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://abusing[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://boom[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://dedi9999[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://dedinumberinfinite[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://dvrdownloader[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://dvrs[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st; URL under dvrs.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://fsocietyhackattack[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxp://godofthunder[.]st/</code></td>
+<td>URL under godofthunder.st</td>
+</tr>
+<tr>
+<td><code>hxxp://hackattackkaboom[.]botlesscucks[.]st/</code></td>
+<td>URL under hackattackkaboom.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://hackattackkaboom[.]botlesscucks[.]st/arm7</code></td>
+<td>URL under hackattackkaboom.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://hackattackkaboom[.]botlesscucks[.]st/x86_64</code></td>
+<td>URL under hackattackkaboom.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://hik[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st; URL under hik.gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxp://ijustgetsonervy[.]potassium[.]st/</code></td>
+<td>URL under ijustgetsonervy.potassium.st; URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://ijustgetsonervy1[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/bash[.]sh</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/bash[.]sh/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]arm6/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]arm7</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]m68k</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]mips</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]mips/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]mipsel</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]mipsel/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]ppc/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]ppc440</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]ppc440/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]sh4</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]x32</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]x64-test</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://iloveboats[.]st:8081/titan[.]x64-test/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://mail[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://musika[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://smart[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://stoplooking1[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://stoplooking2[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://thunder[.]godofthunder[.]st/</code></td>
+<td>URL under godofthunder.st; URL under thunder.godofthunder.st</td>
+</tr>
+<tr>
+<td><code>hxxp://tvt[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://vitacocoyougoloco[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://vitacocoyoungoloco[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]abusing[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]boom[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]godofthunder[.]st/</code></td>
+<td>URL under godofthunder.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]hik[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]iloveboats[.]st/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]musika[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]smart[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]tvt[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]vitacocoyougoloco[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxp://www[.]youareall[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxp://youareall[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://94[.]183[.]174[.]77/flutter[.]m68k</code></td>
+<td>ITW URL of 95ca6596a568</td>
+</tr>
+<tr>
+<td><code>hxxps://abusing[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://boom[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://dvrs[.]botlesscucks[.]st/</code></td>
+<td>URL under dvrs.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://fsocietyhackattack[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxps://hackattackkaboom[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st; URL under hackattackkaboom.botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://hik[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st; URL under hik.gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxps://ijustgetsonervy[.]potassium[.]st/</code></td>
+<td>URL under ijustgetsonervy.potassium.st; URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://ijustgetsonervy1[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://iloveboats[.]st/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxps://musika[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://smart[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://stoplooking[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://stoplooking2[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://thunder[.]godofthunder[.]st/</code></td>
+<td>URL under godofthunder.st; URL under thunder.godofthunder.st</td>
+</tr>
+<tr>
+<td><code>hxxps://tvt[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://vitacocoyougoloco[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]abusing[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]boom[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]dvrs[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]hik[.]gettingheadfromduckysmom[.]st/</code></td>
+<td>URL under gettingheadfromduckysmom.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]iloveboats[.]st/</code></td>
+<td>URL under iloveboats.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]smart[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]stoplooking[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]tvt[.]abuse[.]st/</code></td>
+<td>URL under abuse.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]vitacocoyougoloco[.]potassium[.]st/</code></td>
+<td>URL under potassium.st</td>
+</tr>
+<tr>
+<td><code>hxxps://www[.]youareall[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+<tr>
+<td><code>hxxps://youareall[.]botlesscucks[.]st/</code></td>
+<td>URL under botlesscucks.st</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a10-execution-parents-and-files-tied-to-the-infrastructure">A10. Execution parents and files tied to the infrastructure<a class="headerlink" href="#a10-execution-parents-and-files-tied-to-the-infrastructure" title="Permanent link">#</a></h3>
+<p>Execution parents (droppers and scripts that ran a relative):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>parent sha256</th>
+<th>ran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f27a60ab9231adebcd917f1ca6e0510785d4d42c2fa2b09e7fd589562dff9251</code></td>
+<td>19404421a1be, f27a60ab9231</td>
+</tr>
+<tr>
+<td><code>04d3aefbcb6d2097f66a3ec053a2b17cb1af298a215f6299f691aae88992acd9</code></td>
+<td>04d3aefbcb6d</td>
+</tr>
+<tr>
+<td><code>2a3aab2a262a9fccf8c35ebe2fdfe08f533395a4cf78b2cb202e5ca2129c5c4e</code></td>
+<td>2a3aab2a262a</td>
+</tr>
+<tr>
+<td><code>4f72fc11689772b49972d34a31dba448aacd1fd0a65eeac4681585bc9d04a5d0</code></td>
+<td>4f72fc116897</td>
+</tr>
+<tr>
+<td><code>5c3b7bc52f43afdd7f0e2232f1695e867b71d58a91842654d376c2474521fdf6</code></td>
+<td>5c3b7bc52f43</td>
+</tr>
+<tr>
+<td><code>a5b910d1d1f43d45a0bc2aa08bcd059cacc3aa3940002ed08828a9a0caedf4cf</code></td>
+<td>676c914f3002</td>
+</tr>
+<tr>
+<td><code>6b7c0fa7c4cf72f39fb8753d2599353ccfd8449ddbb21b07acc05da4fd254c06</code></td>
+<td>6b7c0fa7c4cf</td>
+</tr>
+<tr>
+<td><code>8d3039c111ecccfb08e37344787e93998c08c59cfb8ee11b3f76e93371186f08</code></td>
+<td>8d3039c111ec</td>
+</tr>
+<tr>
+<td><code>91c3d9de90635f38e9ac25c69846edb2a950f52b891379e6cdd285961255fb98</code></td>
+<td>90b06f07eb75</td>
+</tr>
+<tr>
+<td><code>972b7ffa46c52aaec7de4a209f37835515c089db8fe84996b7fdae4f31b1cf4f</code></td>
+<td>972b7ffa46c5</td>
+</tr>
+<tr>
+<td><code>99dee7e7d52a95393b69093792c1c2a974dc2360467a64a22bd14e110d152735</code></td>
+<td>99dee7e7d52a</td>
+</tr>
+<tr>
+<td><code>1e88235e2a193668e2f8b1ab0bfd4e91b8707ecf450748cd73709e7dd777dc26</code></td>
+<td>9e0d7b64f1d7</td>
+</tr>
+<tr>
+<td><code>ead9b20d35f4bfbe23f6471a3d526a072a8292b04e20d5f03afdf63cfff13b00</code></td>
+<td>9e0d7b64f1d7</td>
+</tr>
+<tr>
+<td><code>9e966b85bc00a124a69addc5dd676cf54fe0dd4649b1a98a2bd9c447b852ca55</code></td>
+<td>9e966b85bc00</td>
+</tr>
+<tr>
+<td><code>a9353bc636c4ab17b0cbe68e289d908db6927ca5df6f28082dcde4f8694c18f2</code></td>
+<td>a9353bc636c4</td>
+</tr>
+<tr>
+<td><code>76d52746897f0a6a99b991fe9b5fc4a5ae6afdc12d57f1f0d3b3c18cd967c343</code></td>
+<td>b48bfc0b588e</td>
+</tr>
+<tr>
+<td><code>b48bfc0b588e0ea9d4638d64ffdfb9b2b28537c64d5a53134d0edb9bdf7ab182</code></td>
+<td>b48bfc0b588e</td>
+</tr>
+<tr>
+<td><code>b4ae86de813acefbdeac8794336a72da081e68b8004a68be0ec3aa258d86d76a</code></td>
+<td>b4ae86de813a</td>
+</tr>
+<tr>
+<td><code>87740a04af37f2d637caf98a73ab30c18273f1a8b3a48e4c0f935a4b365445c8</code></td>
+<td>b7482848fb53</td>
+</tr>
+<tr>
+<td><code>b7482848fb53521948ca29e5d7b4bf78454f6ac768355b52c62aef149f3fff3f</code></td>
+<td>b7482848fb53</td>
+</tr>
+<tr>
+<td><code>32a9892b9968c6acf561d371891ec53a54c22d0d30172ed2fd38fdfea4147a81</code></td>
+<td>bc6854418c71</td>
+</tr>
+<tr>
+<td><code>d3d562dd6dd1ab9eb00c129df63bd410af9559de00a2221f4b82f29c98072131</code></td>
+<td>d3d562dd6dd1</td>
+</tr>
+<tr>
+<td><code>e178d34417d1c130c933ed8cfaa1bcc991529cb1d76d8529ad09349cd4564cc9</code></td>
+<td>e178d34417d1</td>
+</tr>
+<tr>
+<td><code>e58ff94b9a26238f683278c3a3d48fba18dd26ff85c706d5972192bd7168d0a7</code></td>
+<td>e58ff94b9a26</td>
+</tr>
+<tr>
+<td><code>e7aeac7b5834cc74cc104dfb928a328c8182c0dd24d02ba43d2b831e9f63ec72</code></td>
+<td>e7aeac7b5834</td>
+</tr>
+<tr>
+<td><code>ef549f315d3af072ff7db4c7f65cdf1e7a9b30bb3a0143a6f9ef7b2d2dc2ffec</code></td>
+<td>ef549f315d3a</td>
+</tr>
+<tr>
+<td><code>f7724e6386bd8c3ef54bcd8b093ab7b40af8879ee3ec8b5fbd9a36e966790873</code></td>
+<td>f7724e6386bd</td>
+</tr>
+<tr>
+<td><code>fcbe8dd8a0180128d705bbe6b6c2a5809997d5c317bffe30674b7753e5a6d370</code></td>
+<td>fcbe8dd8a018</td>
+</tr>
+</tbody>
+</table></div>
+<p>The 79 further files that communicate with the group's domains or hosting are listed in <a href="iocs.csv">iocs.csv</a>.</p>
+<h3 id="a11-operator-wallets-ethereum-read-only-lookups-2026-10-22">A11. Operator wallets (Ethereum, read-only lookups 2026-10-22)<a class="headerlink" href="#a11-operator-wallets-ethereum-read-only-lookups-2026-10-22" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>address</th>
+<th>role</th>
+<th>type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x32ab9ef9123a495ee7e68c3c18de94c401e8da7b</code></td>
+<td>owns the sample's ENS names <code>2sexy4u[.]eth</code> and <code>sushiconsumer[.]eth</code></td>
+<td>externally-owned account (10 txs)</td>
+</tr>
+<tr>
+<td><code>0xd5e348763fef825c36ad60a4294567187cc9f995</code></td>
+<td>owns the siblings' ENS name <code>catswithhatslolksjhakf[.]eth</code></td>
+<td>smart contract (ERC-4337), active since 2025</td>
+</tr>
+<tr>
+<td><code>0x868a97277edc8a8c5d9e6cdaddb28d8103031635</code></td>
+<td>throwaway relay that funded wallet <code>0x32ab9ef9…</code> on 2026-10-13</td>
+<td>externally-owned account (drained)</td>
+</tr>
+<tr>
+<td><code>0x6577669d78ac611870f74a50d94b6c17a9c293d0</code></td>
+<td>throwaway relay that funded wallet <code>0xd5e34876…</code></td>
+<td>externally-owned account</td>
+</tr>
+<tr>
+<td><code>0xb5d85cbf7cb3ee0d56b3bb207d5fc4b82f43f511</code></td>
+<td>Coinbase hot wallet; seeded the relay above on 2025-06-10 (KYC attribution lead)</td>
+<td>exchange</td>
+</tr>
+<tr>
+<td><code>0x8715fff43f70f103428f96fd4c4432c5ee75044c</code></td>
+<td>funded relay <code>0x868a97…</code>; reused wallet, part of a shared OTC / cash-movement cluster (traced 2026-10-26)</td>
+<td>externally-owned account (72 txs)</td>
+</tr>
+<tr>
+<td><code>0xd6468298Bb652b3C05bbce14eC2025Fc5f6a9276</code></td>
+<td>funder that fed the reused wallet <code>0x8715fff4…</code>; busy USDT to many parties (shared cash cluster)</td>
+<td>externally-owned account</td>
+</tr>
+<tr>
+<td><code>0x51dBd97Fa14F4D78F8Afc2E92A692a9E087Efb5C</code></td>
+<td>upstream wallet (6.65 ETH) in the shared cluster; funded in by KuCoin</td>
+<td>externally-owned account</td>
+</tr>
+<tr>
+<td><code>0x45300136662dD4e58fc0DF61E6290DFfD992B785</code></td>
+<td>KuCoin hot wallet; funded <code>0x51dBd97…</code> on 2026-10-25 (lead to confirm)</td>
+<td>exchange</td>
+</tr>
+<tr>
+<td><code>0x16f59CEfA5A2828Fe9812D94444573fe87C5c8c9</code></td>
+<td>Binance deposit address; the reused wallet cashes out here 2026-10-12 (lead to confirm)</td>
+<td>exchange deposit</td>
+</tr>
+<tr>
+<td><code>0x3f3Ee0a9cAC2d01DB44001eca3E8382fbe40207B</code></td>
+<td>ChangeNOW no-KYC swap deposit; funds <code>0xd6468298…</code> (deliberate break in the trail)</td>
+<td>swap service</td>
+</tr>
+<tr>
+<td><code>0x59e16fccd424cc24e280be16e11bcd56fb0ce547</code></td>
+<td>third-party ENS registration contract used by both operator wallets</td>
+<td>contract</td>
+</tr>
+<tr>
+<td><code>0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e</code></td>
+<td>ENS registry (public)</td>
+<td>contract</td>
+</tr>
+<tr>
+<td><code>0xf29100983e058b709f3d539b0c765937b804ac15</code></td>
+<td>resolver all three operator names use (operator-specific)</td>
+<td>contract</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a12-related-sample-hashes">A12. Related sample hashes<a class="headerlink" href="#a12-related-sample-hashes" title="Permanent link">#</a></h3>
+<p>High-confidence siblings (same operator):</p>
+<ul>
+<li><code>6f272c85365a1783eedbf7bc80112db52d13bca5415703df127b869b23bc179f</code> (x86-64, 2026-10-04)</li>
+<li><code>b58cf55ad3e632086b1fa91989a38ea5266530eb0f52ee54eb81ad4edc49cc48</code> (x86-64, 2026-09-23)</li>
+</ul>
+<p>Likely same operator (ARM):</p>
+<ul>
+<li><code>5420b2745e8d8c347563d73c3945b50b12f7c21b38fbfefd0202779fe1fa98c1</code></li>
+<li><code>07b98716aa3f8991a377340cf55b335e8f7fc62425c3762fa11d53b91d427521</code></li>
+<li><code>8329ed49c67ab2a0f02b6c43ffda4aa2f3ff6a7599a2a9769aabb121cbcbfa87</code></li>
+<li><code>bc6854418c71d63e9209be6260fdc76517603fb9c1bdbcabb9858043207a418d</code></li>
+<li><code>9ae981175d5e8cf979faf9c4e3e13b3b8270c52a707b3ffc3e6f53b37ea091d2</code></li>
+<li><code>a2b38e3080c9a3c53dff1216cb8d8e8b773e10d95523f2ce518c2a41b2b124e3</code></li>
+</ul>
+<p>Builds surfaced by the 2026-10-22 retrohunt (not previously in the CORD corpus):</p>
+<ul>
+<li>x86-64: <code>6b138dd673640dc611a8b5883301e5b77e6564d43a8462264f50260f674a8ef4</code>, <code>2d3af69a38b0bee1a059a0d4ce907f8bb2128f25a753fff0f84f48ddcb9592c6</code>, <code>c1351f990db3f775e6774194a457081a9f8cea3e57d6d182767fd86551a82c39</code>, <code>7f436c109405ec81a44f52d33f2ba3276c797238729dad09f299a84147fbc8d5</code>, <code>b85897f6378ff42ec4934f574c8ca447d2c37fe58d0ab7f877fdf48e0522ec6f</code>, <code>3a032308c72fe33ddd89f03d9f64e2c56cad5fb0dc6ed8e3d3c6eb684108b629</code></li>
+<li>ARM / SuperH / x86: <code>3461b097ea026c9161113f0f590e75c47908cebd3d6a30de3b821c10a85ea9fc</code>, <code>c475cf4e7877b792544783d3edeb028882df09ee5363ab7f90ce11e14c41cb26</code>, <code>e36e40cfdd57ce91c7d349f42b0e7768aa233337166c15e7f215d081df9c0ba9</code>, <code>b200ab6d281055e113fe82fbd7d4fef86183221a4a68c6154ab8ca6fc08c34fb</code>, <code>44a6090b72ff9094a862f13a14ff333fcf19b41eb58af9c0bd54f23834c175fa</code>, <code>7fc40677a79d0cbc675d8c0042d6cfbc87ca1a9982f5046008feb7bd4fe799b9</code>, <code>10c7853e6dc953e6b805cef03a7324caf6c87e68117a7c3175feb463c5c9c0e0</code>, <code>01c70849ed30aa1cc4e08cb7529b62c2e3a9044ad0ab000ad84a343444a8dd5a</code>, <code>6a1cefffb07c9a6d58f42f1ed686e4ff7de0f70196d6fef76f424f219e36a315</code>, <code>3f50a7629d8d324e7a614cf89881822b89bb37d26fe0852e7ebf5173b5340d29</code>, <code>2b32143e21c0b2ceed37f1100d3a3d42379c48c6d4163f31e25aa524bea34a14</code>, <code>b78ae1663194190fb8c92cf1f436ad892c08d51fdbe8cccdaa12e539988e731a</code>, <code>5997a6f80b25f550c5e7617bceac4477c580057846f8061e7165d1fbfa89f30a</code>, <code>73308b7c5982e99b90075f4d48583c00bb984f1765bc6bd5a01ff3b1bbdd5f51</code>, <code>f54f5cec97c24c3eb24f095be8c464b87f4dfc37c0d2f9507b020b24dcf28dd9</code>, <code>c65bca6729f694f1b0c806c30c76c54a70e3d32c8981bbe0f62428028b78db6d</code>, <code>e2529d4afa39ae4db2eb05d5176317c906289abf09660c75bdeec43e54c55aa3</code></li>
+</ul></article>
+</div>
+</main>
+<footer class="wrap">CORD &middot; Cluster, Optimize, Research, Detection. Defensive threat research on
+malware and scams already in circulation. Indicators are defanged; never visit them from a
+normal browser.</footer>
+</body>
+</html>

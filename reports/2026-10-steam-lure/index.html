@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam | CORD Reports</title>
+<meta name="description" content="A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.">
+<link rel="icon" href="../../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/tokens.css">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<header class="top"><div class="in">
+<a class="brand" href="../../index.html" aria-label="CORD Reports home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 199.4 27" width="299" height="40" role="img" aria-label="CORD Research"><title>CORD Research</title><defs><linearGradient id="cord-sweep-research" gradientUnits="userSpaceOnUse" x1="6.9" y1="0" x2="63.7" y2="0"><stop offset="0.000" style="stop-color:var(--part-cluster-mark,#0f9d8a)"/><stop offset="0.333" style="stop-color:var(--part-optimize-mark,#1a8fc4)"/><stop offset="0.667" style="stop-color:var(--part-research-mark,#5b63f5)"/><stop offset="1.000" style="stop-color:var(--part-detection-mark,#8b5cf6)"/></linearGradient></defs><path d="M13,8.9 A6.5,6.5 0 1 0 13,18.1 M18.4,13.5 A6.5,6.5 0 1 1 31.4,13.5 A6.5,6.5 0 1 1 18.4,13.5 M36.8,20 V7 M36.8,13.5 A6.5,6.5 0 0 1 43.3,7 H45.3 M63.7,1 V20 M50.7,13.5 A6.5,6.5 0 1 1 63.7,13.5 A6.5,6.5 0 1 1 50.7,13.5" stroke="url(#cord-sweep-research)" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M70.8,4 V23" stroke="currentColor" stroke-width="1.2" opacity=".35"/><path d="M77.2,20 V7 M77.2,13.5 A6.5,6.5 0 0 1 83.7,7 H85.7 M90.1,13.5 H103.1 A6.5,6.5 0 1 0 101.2,18.1 M117.5,9.3 C116.5,7.7 114.8,7 112.5,7 C109.8,7 107.8,8.4 107.8,10.4 C107.8,12.6 109.9,13.1 112.5,13.6 C115.2,14.1 117.5,14.6 117.5,16.8 C117.5,18.9 115.3,20 112.5,20 C110.2,20 108.3,19.3 107.3,17.7 M121.9,13.5 H134.9 A6.5,6.5 0 1 0 133,18.1 M152.3,7 V20 M139.3,13.5 A6.5,6.5 0 1 1 152.3,13.5 A6.5,6.5 0 1 1 139.3,13.5 M156.7,20 V7 M156.7,13.5 A6.5,6.5 0 0 1 163.2,7 H165.2 M180.7,8.9 A6.5,6.5 0 1 0 180.7,18.1 M185.1,1 V20 M185.1,13.5 A6.5,6.5 0 0 1 198.1,13.5 V20" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--logo-accent,#5b63f5)"/></svg></a>
+<span class="site">Reports</span>
+<nav><a href="../../index.html">All reports</a><a href="../../about.html">About</a></nav>
+</div></header>
+<main class="wrap report">
+<section class="hero">
+<div class="meta"><span class="pill tlp">TLP:CLEAR</span><span class="pill">phishing</span><span class="pill">infostealer</span><span class="pill">steam</span><span class="pill">discord</span><span class="pill">crypto scam</span></div>
+<h1>Hijacked gaming accounts push a Steam gift-card QR phish, fake Steam apps and a MrBeast crypto-casino scam</h1>
+<p class="sub">A Steam and Discord account takeover was used to send five lure images. Behind them sit a Russian-speaking phishing-as-a-service platform that also runs fake Steam stealer apps, and a separate disposable crypto-casino farm. Full infrastructure, malware analysis, indicators, detection and recovery steps.</p>
+<p class="sub small">Published 2026-10-29</p>
+</section>
+<div class="cols">
+<aside class="toc"><div class="toc-in"><div class="toc-h">Contents</div><div class="toc">
+<ul>
+<li><a href="#summary">Summary</a><ul>
+<li><a href="#key-findings">Key findings</a></li>
+</ul>
+</li>
+<li><a href="#how-the-lures-reached-people">How the lures reached people</a></li>
+<li><a href="#lane-1-the-steam-phishing-service">Lane 1: the Steam phishing service</a><ul>
+<li><a href="#the-lure">The lure</a></li>
+<li><a href="#the-landing-page-and-sign-in-box">The landing page and sign-in box</a></li>
+<li><a href="#inside-the-kit">Inside the kit</a></li>
+<li><a href="#infrastructure">Infrastructure</a></li>
+</ul>
+</li>
+<li><a href="#the-same-platforms-malware">The same platform's malware</a><ul>
+<li><a href="#fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples</a></li>
+<li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
+<li><a href="#how-the-malware-is-probably-delivered">How the malware is probably delivered</a></li>
+</ul>
+</li>
+<li><a href="#lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam</a><ul>
+<li><a href="#the-four-image-story">The four-image story</a></li>
+<li><a href="#hash-busting-images">Hash-busting images</a></li>
+<li><a href="#the-casino-farm">The casino farm</a></li>
+</ul>
+</li>
+<li><a href="#who-is-behind-it">Who is behind it</a></li>
+<li><a href="#timeline">Timeline</a></li>
+<li><a href="#mitre-attck">MITRE ATT&amp;CK</a></li>
+<li><a href="#detection">Detection</a><ul>
+<li><a href="#network">Network</a></li>
+<li><a href="#host">Host</a></li>
+<li><a href="#yara">YARA</a></li>
+</ul>
+</li>
+<li><a href="#recovery-and-cleanup">Recovery and cleanup</a><ul>
+<li><a href="#right-now">Right now</a></li>
+<li><a href="#secure-your-email-first">Secure your email first</a></li>
+<li><a href="#steam">Steam</a></li>
+<li><a href="#discord">Discord</a></li>
+<li><a href="#clean-the-pc">Clean the PC</a></li>
+<li><a href="#everything-the-browser-remembered">Everything the browser remembered</a></li>
+<li><a href="#crypto-wallets">Crypto wallets</a></li>
+<li><a href="#if-you-sent-money-to-the-casino">If you sent money to the casino</a></li>
+<li><a href="#checklist">Checklist</a></li>
+</ul>
+</li>
+<li><a href="#indicators">Indicators</a><ul>
+<li><a href="#phishing-and-c2-domains">Phishing and C2 domains</a></li>
+<li><a href="#urls">URLs</a></li>
+<li><a href="#ip-addresses">IP addresses</a></li>
+<li><a href="#malware-sha-256">Malware (SHA-256)</a></li>
+<li><a href="#lure-images-sha-256">Lure images (SHA-256)</a></li>
+<li><a href="#other">Other</a></li>
+</ul>
+</li>
+<li><a href="#how-we-did-this">How we did this</a><ul>
+<li><a href="#limits">Limits</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></aside>
+<details class="toc-m"><summary>Contents</summary><div class="toc">
+<ul>
+<li><a href="#summary">Summary</a><ul>
+<li><a href="#key-findings">Key findings</a></li>
+</ul>
+</li>
+<li><a href="#how-the-lures-reached-people">How the lures reached people</a></li>
+<li><a href="#lane-1-the-steam-phishing-service">Lane 1: the Steam phishing service</a><ul>
+<li><a href="#the-lure">The lure</a></li>
+<li><a href="#the-landing-page-and-sign-in-box">The landing page and sign-in box</a></li>
+<li><a href="#inside-the-kit">Inside the kit</a></li>
+<li><a href="#infrastructure">Infrastructure</a></li>
+</ul>
+</li>
+<li><a href="#the-same-platforms-malware">The same platform's malware</a><ul>
+<li><a href="#fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples</a></li>
+<li><a href="#fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples</a></li>
+<li><a href="#how-the-malware-is-probably-delivered">How the malware is probably delivered</a></li>
+</ul>
+</li>
+<li><a href="#lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam</a><ul>
+<li><a href="#the-four-image-story">The four-image story</a></li>
+<li><a href="#hash-busting-images">Hash-busting images</a></li>
+<li><a href="#the-casino-farm">The casino farm</a></li>
+</ul>
+</li>
+<li><a href="#who-is-behind-it">Who is behind it</a></li>
+<li><a href="#timeline">Timeline</a></li>
+<li><a href="#mitre-attck">MITRE ATT&amp;CK</a></li>
+<li><a href="#detection">Detection</a><ul>
+<li><a href="#network">Network</a></li>
+<li><a href="#host">Host</a></li>
+<li><a href="#yara">YARA</a></li>
+</ul>
+</li>
+<li><a href="#recovery-and-cleanup">Recovery and cleanup</a><ul>
+<li><a href="#right-now">Right now</a></li>
+<li><a href="#secure-your-email-first">Secure your email first</a></li>
+<li><a href="#steam">Steam</a></li>
+<li><a href="#discord">Discord</a></li>
+<li><a href="#clean-the-pc">Clean the PC</a></li>
+<li><a href="#everything-the-browser-remembered">Everything the browser remembered</a></li>
+<li><a href="#crypto-wallets">Crypto wallets</a></li>
+<li><a href="#if-you-sent-money-to-the-casino">If you sent money to the casino</a></li>
+<li><a href="#checklist">Checklist</a></li>
+</ul>
+</li>
+<li><a href="#indicators">Indicators</a><ul>
+<li><a href="#phishing-and-c2-domains">Phishing and C2 domains</a></li>
+<li><a href="#urls">URLs</a></li>
+<li><a href="#ip-addresses">IP addresses</a></li>
+<li><a href="#malware-sha-256">Malware (SHA-256)</a></li>
+<li><a href="#lure-images-sha-256">Lure images (SHA-256)</a></li>
+<li><a href="#other">Other</a></li>
+</ul>
+</li>
+<li><a href="#how-we-did-this">How we did this</a><ul>
+<li><a href="#limits">Limits</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</details>
+<article class="prose"><div class="cards">
+<div class="card"><div class="k">Lure images</div><div class="v">5</div></div>
+<div class="card"><div class="k">Phishing domains tied to the kit</div><div class="v">10+</div></div>
+<div class="card"><div class="k">Malware samples analysed</div><div class="v">16</div></div>
+<div class="card"><div class="k">Casino scam domains</div><div class="v">25+</div></div>
+<div class="card"><div class="k">Payloads in the images</div><div class="v">None</div></div>
+</div>
+
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">#</a></h2>
+<p>In late October 2026 a gamer's Steam and Discord accounts were taken over at the same
+time. Both accounts were then used to message the owner's contacts. Five images were
+sent: one through Steam and four through Discord. We collected the images and followed
+everything they lead to.</p>
+<p>The images contain no malware. Each one is a social-engineering lure, and they lead into
+two separate operations.</p>
+<ol>
+<li><strong>A Steam credential-phishing service (lane 1).</strong> The Steam image is a fake
+   "$100 gift card" with a QR code. The QR code opens a look-alike of
+   <code>steamcommunity.com</code> that shows a fake Steam sign-in box. The page is one tenant
+   of a phishing-as-a-service platform: each page carries an affiliate ID, and at least
+   two affiliates share the servers. The same servers also act as the command server
+   for at least 16 malicious Windows programs that pose as Steam. Some are small fake
+   Steam windows built on WebView2. Others are 61 MB installers that unpack a fake
+   Steam app built on Electron, which steals credentials and sends them to two further
+   domains. Hosting, language artefacts and a lure upload under a Russian file name
+   point to a Russian-speaking operator.</li>
+<li><strong>A MrBeast crypto-casino deposit scam (lane 2).</strong> The four Discord images are a
+   scripted story: a fake MrBeast post announces a casino bonus, a user activates the
+   code, withdraws $3,700, and shows the money arriving in a wallet. The casino domain
+   is one of at least 25 near-identical sites on one server, each lasting a few days.
+   The images carry deliberately broken EXIF data so that every copy has a different
+   file hash, which defeats hash-based spam filtering.</li>
+</ol>
+<p>We found no technical link between the two lanes. They share only the hijacked
+accounts. That fits stolen sessions being sold or rented to more than one scammer.</p>
+<div class="callout bad">
+<p><strong>If you received these images:</strong> do not scan the QR code and do not visit the casino.
+If you already did, follow <a href="#recovery-and-cleanup">Recovery and cleanup</a>. If your own
+account sent them, start there too: your Steam and Discord sessions are in someone
+else's hands right now.</p>
+</div>
+<h3 id="key-findings">Key findings<a class="headerlink" href="#key-findings" title="Permanent link">#</a></h3>
+<ul>
+<li>The Steam phish does not use a plain password form. It shows a fake Steam sign-in box
+  inside the page, sets a signed cookie that names the affiliate who owns the link, and
+  posts an encrypted record of the visit back to its server. Treat any password typed
+  into it as stolen.</li>
+<li>The phishing host <code>8909451279.f1shh[.]at</code> serves a phishing page and is also the
+  command server for three of the fake-Steam programs. Phishing and malware run on one
+  platform, not merely on shared hosting.</li>
+<li>A 61 MB installer in the same set unpacks an Electron app whose <code>package.json</code>
+  claims to be "steam-login-app" by "Valve Corporation". Its logic is hidden as compiled
+  V8 bytecode (bytenode). It opens target sites in a window with Node access, injects
+  CSS and JavaScript, and uploads what it collects to <code>fakefake[.]shop</code> and
+  <code>pulse-keys[.]store</code>.</li>
+<li>The casino lure images reuse a phrase from the casino site itself ("Your Withdrawal
+  of $3700.00 Was Successfully!"), so the screenshots came from the real scam kit, not
+  a mock-up.</li>
+<li>How the account owner was first compromised is not proven. An infostealer taking
+  both platforms' sessions at once fits best (medium confidence). Password reuse, or a
+  phish like the one the account then sent, also fit.</li>
+</ul>
+<h2 id="how-the-lures-reached-people">How the lures reached people<a class="headerlink" href="#how-the-lures-reached-people" title="Permanent link">#</a></h2>
+<p>Both hijacked accounts sent the images to existing contacts, which is what makes the
+lures work: they arrive from a friend. Neither message contained a clickable link.
+The Steam lure hides its URL in a QR code, and the Discord lure spells the casino name
+out inside a screenshot. Link scanners on both platforms check text, not pixels, so
+neither lure gives them anything to block.</p>
+<div class="figs">
+<figure>
+<img src="img/img1-steam-giftcard.png" alt="Fake Steam gift card graphic offering a free $100 card, with a QR code (pixelated here)">
+<figcaption><strong>Lure 1 (Steam).</strong> A fake $100 "Limited edition collector's series" gift card. The QR code (pixelated in this copy) opens the phishing page.</figcaption>
+</figure>
+<figure>
+<img src="img/phish-landing-1.png" alt="Phishing page styled as Steam reading 21 YEARS TOGETHER, get your $50 gift card">
+<figcaption><strong>Where the QR code leads.</strong> A Steam look-alike on <code>steamcomrnuunity[.]com</code>: "21 years together", a fake claimed-card counter, and a "Get the card" button that opens the fake sign-in box. Captured by urlscan.io.</figcaption>
+</figure>
+</div>
+
+<h2 id="lane-1-the-steam-phishing-service">Lane 1: the Steam phishing service<a class="headerlink" href="#lane-1-the-steam-phishing-service" title="Permanent link">#</a></h2>
+<h3 id="the-lure">The lure<a class="headerlink" href="#the-lure" title="Permanent link">#</a></h3>
+<p>The gift-card image shows real game art (Elden Ring, Baldur's Gate 3, Cyberpunk 2077,
+Starfield, Minecraft) around a Steam logo, with "TAKE YOUR FREE $100 GIFT CARD" above a
+QR code. The code decodes to <code>hxxps://steamcomrnuunity[.]com/code/2035922</code>. The domain
+swaps the <code>m</code> in "community" for <code>rn</code>, which reads as <code>m</code> at a glance, and doubles the
+<code>u</code>. The <code>/code/&lt;number&gt;</code> path imitates a gift-card redemption link.</p>
+<p>The image was hosted on Steam's own user-content CDN at one point (one of its
+VirusTotal submission names is <code>images.steamusercontent.jpg</code>). Another submission used a
+Russian file name meaning "Untitled.jpg". It was first submitted on 2026-10-11, one day
+after the phishing URL's first public scan.</p>
+<h3 id="the-landing-page-and-sign-in-box">The landing page and sign-in box<a class="headerlink" href="#the-landing-page-and-sign-in-box" title="Permanent link">#</a></h3>
+<p>The domain's root returns a 404 page. Only the <code>/code/&lt;id&gt;</code> paths show the lure, which
+keeps the site looking empty to anyone who browses to the bare domain. Four codes were
+observed: <code>2035922</code>, <code>647829</code>, <code>876809</code> and <code>3454765444</code>. One shows a $50 card and the
+others a $100 card. VirusTotal lists at least ten flagged paths on the domain, including
+<code>/code/</code>, <code>/activate/</code> and long hex paths that change per visitor.</p>
+<p>The page shows a Steam-styled landing screen with a fake counter of cards "received".
+Its "Get the card" button calls an <code>openAuth()</code> function in the page script. That
+function builds an iframe holding a Steam-styled sign-in dialog (password, Steam Guard
+code or QR sign-in) inside the phishing page. The server sends
+<code>X-Frame-Options: ALLOWALL</code> and <code>frame-ancestors *</code>, so the kit can also be framed by
+other sites.</p>
+<p>We read the page script but did not run it, and we never submitted anything to the
+form. So we cannot say whether the dialog relays a live Steam sign-in or only records
+what is typed. Either way, <strong>treat any password, Steam Guard code or QR approval given
+to this page as stolen.</strong></p>
+<h3 id="inside-the-kit">Inside the kit<a class="headerlink" href="#inside-the-kit" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>What we saw</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server</td>
+<td>openresty in front of a Node.js backend. Errors come back as NestJS-style JSON: <code>{"message":…,"error":…,"statusCode":…}</code></td>
+</tr>
+<tr>
+<td>Session cookie</td>
+<td><code>session</code>: JWE, AES-128 key wrap with AES-128-GCM</td>
+</tr>
+<tr>
+<td>Affiliate cookie</td>
+<td><code>token</code>: HS256 JWT with three fields: <code>owner</code> (affiliate ID), <code>secret</code> (rotates per visit) and <code>service</code> (<code>Steam</code>)</td>
+</tr>
+<tr>
+<td>Affiliate IDs seen</td>
+<td><code>626</code> on all four <code>steamcomrnuunity[.]com</code> codes; <code>1207</code> on <code>8909451279.f1shh[.]at/client</code></td>
+</tr>
+<tr>
+<td>Visit beacon</td>
+<td>The script reads the <code>token</code> cookie, XOR-encrypts the visited path with a key derived from the URL, and posts the result back as hex</td>
+</tr>
+<tr>
+<td>Script obfuscation</td>
+<td>Custom base-91 decoders with shuffled alphabets, a self-rotating table of about 130 encoded strings, nested decoders. Identical on every page and host we fetched</td>
+</tr>
+<tr>
+<td>Favicon</td>
+<td>32×32 Steam icon inlined as a data URI. mmh3 <code>1775797633</code>, SHA-256 <code>1ceaec59…e3d6b9</code></td>
+</tr>
+<tr>
+<td>TLS</td>
+<td>One Let's Encrypt certificate per domain, no shared SANs. JARM <code>21d19d00021d21d00042d43d00000091f9827a8676a9d9f27d421962a09b5d</code></td>
+</tr>
+<tr>
+<td>Social preview</td>
+<td>Points at Steam's real CDN image (<code>cdn.akamai.steamstatic.com/store/about/social-og.jpg</code>) so shared links preview correctly</td>
+</tr>
+</tbody>
+</table></div>
+<p>The affiliate cookie is the clearest sign that this is a service rather than one
+person's phishing site. Each link carries the ID of the affiliate who will be credited
+with the stolen account, and two different IDs appear on the same servers.</p>
+<h3 id="infrastructure">Infrastructure<a class="headerlink" href="#infrastructure" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Role</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>steamcomrnuunity[.]com</code></td>
+<td>QR destination</td>
+<td>Registered 2026-07-29 at Hosting Concepts (Registrar.eu), Openprovider name servers. Flagged by 23 of 92 VirusTotal engines</td>
+</tr>
+<tr>
+<td><code>steamcomrnunuity[.]online</code></td>
+<td>Steam typosquat</td>
+<td>Same servers, same error format</td>
+</tr>
+<tr>
+<td><code>staemcommunity[.]com[.]ru</code></td>
+<td>Steam typosquat</td>
+<td>Same server (192.162.199.140)</td>
+</tr>
+<tr>
+<td><code>steamqowered[.]shop</code></td>
+<td>Steam store typosquat</td>
+<td>Same server (192.162.199.140)</td>
+</tr>
+<tr>
+<td><code>steamcommunlty[.]site</code></td>
+<td>Steam typosquat</td>
+<td>Eight subdomains on 192.162.199.140</td>
+</tr>
+<tr>
+<td><code>gifting-raduga[.]biz</code></td>
+<td>"Steam gift activation" page</td>
+<td>"Raduga" is Russian for "rainbow"</td>
+</tr>
+<tr>
+<td><code>rtgift[.]com</code></td>
+<td>Gift-card lure</td>
+<td>Same servers, same error format</td>
+</tr>
+<tr>
+<td><code>f1shh[.]at</code></td>
+<td>Phishing and malware C2</td>
+<td>40+ numbered subdomains. Listed on ThreatFox as "fake-steam-client" C2</td>
+</tr>
+<tr>
+<td><code>koooolda[.]shop</code></td>
+<td>Malware C2</td>
+<td>Resolves to 62.60.226.75. Used by one fake-Steam program</td>
+</tr>
+<tr>
+<td><code>cheatdetector[.]shop</code></td>
+<td>Unknown, likely lures or a panel</td>
+<td>20 subdomains on 192.162.199.140, including <code>account-sso</code>, <code>webmail-login</code>, <code>panel</code>, <code>builder</code>, <code>grafana</code>. None answered when we checked</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>IP</th>
+<th>Network</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>62.60.226.75</code></td>
+<td>FEMO IT Solutions, AS214351</td>
+<td>Main phishing host and malware C2</td>
+</tr>
+<tr>
+<td><code>192.162.199.140</code></td>
+<td>FEMO IT Solutions, AS214351</td>
+<td>Second phishing host, typosquats, <code>cheatdetector[.]shop</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>AS214351 has been described as bulletproof hosting by Silent Push, Recorded Future and
+Infoblox. VirusTotal also showed <code>steamcomrnuunity[.]com</code> briefly pointing at
+<code>185.53.179.136</code> on 2026-10-15. That address belongs to a domain-parking service
+(Team Internet, AS206834), not to the operator, so we do not list it as an indicator.</p>
+<div class="callout">
+<p><strong>Hunting pivots.</strong> Search Shodan or Censys for <code>http.favicon.hash:1775797633</code> and the
+JARM above to find more servers running this kit. The domain's DNS also carries a
+Google site-verification token (<code>me9ZlrZsMXh3rGKrjmph4_LMHQaPgsy3QXb3b_buz_M</code>), which may
+appear on the operator's other domains.</p>
+</div>
+<h2 id="the-same-platforms-malware">The same platform's malware<a class="headerlink" href="#the-same-platforms-malware" title="Permanent link">#</a></h2>
+<p>VirusTotal links 16 Windows programs to the main phishing server. We downloaded all of
+them for static analysis and ran none. They fall into two families of fake Steam apps.</p>
+<h3 id="fake-steam-windows-webview2-11-samples">Fake Steam windows (WebView2), 11 samples<a class="headerlink" href="#fake-steam-windows-webview2-11-samples" title="Permanent link">#</a></h3>
+<p>Eleven are 1 MB 64-bit programs, nearly all named <code>steam.exe</code> or <code>Steam.exe</code>. When
+they run they copy themselves under random names such as <code>C:\Windows\q3e342g.exe</code>. One
+used the real Steam install path, <code>C:\Program Files (x86)\Steam\steam.exe</code>. Ten share
+the same five bundled files, so they come from one builder. They were first submitted to
+VirusTotal between 2026-09-21 and 2026-10-17. Detection ranges from 3 to 40 engines.</p>
+<p>We analysed a representative (<code>f27af032…</code>, 40 detections) in depth. What it does:</p>
+<div class="flow">
+<div>Takes a single-instance lock, so a second copy waits for the first to exit.</div>
+<div>Writes a second program, carried as a 164 KB resource (RCDATA 300), to disk.</div>
+<div>Opens a frameless, dark, DPI-aware window built on Microsoft Edge WebView2, styled like a Steam sign-in. It stays hidden for 1.5 seconds, then appears in front.</div>
+<div>Loads its page from <code>hxxps://8909451279.f1shh[.]at/client</code>, the same phishing host we fetched.</div>
+<div>Gives that page a JSON message bridge to native code. Through it the page can read any file by path, write any file, and open URLs or programs.</div>
+<div>Builds a machine fingerprint from the process ID, tick count and locale, mixed with fixed XOR constants, and sends it with its web requests (WinInet, 15 s and 30 s timeouts).</div>
+</div>
+
+<p>The result is a remote-controlled credential trap. The operator's server decides what
+the window shows, and the bridge lets that page read and write files on the machine.
+That covers Steam's local session files as well as browser data. The dropped second
+program was not analysed in this pass.</p>
+<h3 id="fake-steam-installers-nsis-and-electron-5-samples">Fake Steam installers (NSIS and Electron), 5 samples<a class="headerlink" href="#fake-steam-installers-nsis-and-electron-5-samples" title="Permanent link">#</a></h3>
+<p>Five 61 MB files are NSIS 3 installers, with 0 to 2 detections. They are built in
+three layers:</p>
+<div class="flow">
+<div><strong>NSIS installer.</strong> Stock NSIS code. Its version info and icon pose as Valve. It unpacks a 63 MB 7-zip archive and starts the payload with no window (<code>CREATE_NO_WINDOW</code>).</div>
+<div><strong>Electron app.</strong> A renamed Chromium/Electron runtime with an <code>app.asar</code>. Its <code>package.json</code> says <code>"name": "steam-login-app"</code> and author "Valve Corporation". The 44-byte <code>main.js</code> just loads <code>main.jsc</code> through bytenode.</div>
+<div><strong>Compiled payload.</strong> <code>main.jsc</code> is 93 KB of V8 bytecode, which hides the source. Its strings show a <code>BrowserWindow</code> with Node integration on and context isolation off, a <code>TARGET_URLS</code> list, injected CSS and JavaScript in a dark Steam-like theme, browser storage and service-worker access, and two upload endpoints: <code>hxxps://fakefake[.]shop/3253523</code> and <code>hxxps://pulse-keys[.]store/6887</code>.</div>
+</div>
+
+<p>This is the same idea as the WebView2 programs, rebuilt on Electron: a convincing
+Steam window that the victim signs in to, with full access to the machine behind it.</p>
+<h3 id="how-the-malware-is-probably-delivered">How the malware is probably delivered<a class="headerlink" href="#how-the-malware-is-probably-delivered" title="Permanent link">#</a></h3>
+<p>We did not find the download pages. The evidence points to game-related lures: the
+<code>cheatdetector[.]shop</code> domain on the same server, programs named <code>SteamClient.exe</code>, and
+one sample's build path <code>12rwqr-main/DWASDAS/SteamClient.exe</code>, which looks like the
+author's own project folder. Fake "cheat detectors", game cheats and "Steam client
+fixes" sent over Discord are the usual route for this kind of malware.</p>
+<h2 id="lane-2-the-mrbeast-crypto-casino-scam">Lane 2: the MrBeast crypto-casino scam<a class="headerlink" href="#lane-2-the-mrbeast-crypto-casino-scam" title="Permanent link">#</a></h2>
+<h3 id="the-four-image-story">The four-image story<a class="headerlink" href="#the-four-image-story" title="Permanent link">#</a></h3>
+<div class="figs">
+<figure>
+<img src="img/img2-fake-mrbeast-post.png" alt="Screenshot of a fake MrBeast X post promoting a crypto casino bonus">
+<figcaption><strong>1. The hook.</strong> A fake MrBeast post announces a casino "linked to our recent launch of the Vyro project" and $3,500 for everyone who registers with code CASH. "This post will be deleted an hour after publication."</figcaption>
+</figure>
+<figure>
+<img src="img/img3-casino-bonus.png" alt="Casino bonus page with promo code CASH ready to activate">
+<figcaption><strong>2. The bonus.</strong> The casino's bonus page with CASH filled in, a MrBeast tab left open beside it.</figcaption>
+</figure>
+<figure>
+<img src="img/img4-fake-withdrawal.png" alt="Withdrawal success popup for $3700">
+<figcaption><strong>3. The payout.</strong> "Your Withdrawal of $3700.00 Was Successfully!" The same broken phrase appears in the casino site's own code.</figcaption>
+</figure>
+<figure>
+<img src="img/img5-fake-wallet-receipt.png" alt="Phone wallet showing 3700 USDC received next to the casino screen">
+<figcaption><strong>4. The proof.</strong> A phone photo of a wallet showing +3,700 USDC on 2026-10-23, held up to the casino screen.</figcaption>
+</figure>
+</div>
+
+<p>The pattern is a deposit scam. The bonus can only be "withdrawn" after a deposit or a
+"verification" payment, and that money is gone. The withdrawal and the wallet receipt
+were staged to make the payout look real.</p>
+<h3 id="hash-busting-images">Hash-busting images<a class="headerlink" href="#hash-busting-images" title="Permanent link">#</a></h3>
+<p>All four Discord images carry the same deliberately broken EXIF block: a 94-byte APP1
+segment whose six fields point outside their own data. Orientation has a count of 2 and
+XResolution a count of 8. The comment field varies per image ("Exported from Photos",
+"Processed by MediaService", "Compressed by imaging-sdk", "Quality: standard"). None of
+this changes the picture, but every copy gets a different file hash. None of the four
+hashes we received has ever been seen on VirusTotal. That shows how well it works
+against "block this known image" filters.</p>
+<h3 id="the-casino-farm">The casino farm<a class="headerlink" href="#the-casino-farm" title="Permanent link">#</a></h3>
+<p>The casino in the images, <code>marewin[.]com</code>, was registered at Dynadot on 2026-10-23 and
+put on clientHold about three days later. It sat on <code>172.86.88.161</code> (RouterHosting /
+Cloudzy, AS14956) beside at least 24 sister sites built from the same template, titled
+"{Name}: Crypto Casino &amp; Provably Fair Games":</p>
+<blockquote>
+<p>amkwin, basoowin, fabawin, hudowin, jolyspin, kegwin, kevowin, kigwin, mavubet,
+mazowin, meviwin, mosubet, padowin, pevowin, ruzowin, tasowin, uvowin, vadowin,
+vazowin, xakawin, zenawin, ziewin, zuzawin, zytwin (all <code>.com</code>)</p>
+</blockquote>
+<p>Archived copies show a self-contained Next.js app with no analytics, no third-party
+scripts and no wallet addresses in the page. It accepts USDT, USDC and BNB. When we
+checked, HTTPS no longer worked on any of the sites, and plain HTTP to the server
+answered <code>503</code>. The farm moves on to new names faster than registrars suspend them.</p>
+<p>The setup resembles kits sold as a service for this kind of scam. We looked for one
+published kit's tell-tale API path (<code>/api/mammoth/chat</code>) and did not find it, so we do
+not name a kit.</p>
+<h2 id="who-is-behind-it">Who is behind it<a class="headerlink" href="#who-is-behind-it" title="Permanent link">#</a></h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Confidence</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lane 1 is a phishing-as-a-service platform with several affiliates</td>
+<td>High</td>
+<td>Affiliate IDs 626 and 1207 in signed cookies on shared servers; one codebase across all hosts</td>
+</tr>
+<tr>
+<td>The same platform runs the fake-Steam malware</td>
+<td>High</td>
+<td>Three samples call the exact phishing host we fetched; all 16 call the same server</td>
+</tr>
+<tr>
+<td>Lane 1 operators are Russian-speaking</td>
+<td>Medium</td>
+<td><code>gifting-raduga[.]biz</code>, a Russian-TLD typosquat, a lure uploaded under a Russian file name, bulletproof hosting on AS214351</td>
+</tr>
+<tr>
+<td>Lane 2 is an automated disposable domain farm</td>
+<td>High</td>
+<td>25+ same-template domains on one IP, each living days</td>
+</tr>
+<tr>
+<td>The two lanes are one actor</td>
+<td>Low</td>
+<td>No shared infrastructure, code or registration data. Stolen sessions are often resold</td>
+</tr>
+<tr>
+<td>The account owner was infected by an infostealer</td>
+<td>Medium</td>
+<td>Both platforms fell at once. Not proven without the PC; password reuse or a phish also fit</td>
+</tr>
+</tbody>
+</table></div>
+<p>We keep attribution at the group level and do not name individuals.</p>
+<h2 id="timeline">Timeline<a class="headerlink" href="#timeline" title="Permanent link">#</a></h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-07-29</td>
+<td><code>steamcomrnuunity[.]com</code> registered; certificate issued the next day</td>
+</tr>
+<tr>
+<td>2026-09-14</td>
+<td>Certificate renewed; domain moves to <code>62.60.226.75</code></td>
+</tr>
+<tr>
+<td>2026-09-21</td>
+<td>First fake-Steam program submitted to VirusTotal</td>
+</tr>
+<tr>
+<td>2026-10-10</td>
+<td>First public scan of the phishing URL</td>
+</tr>
+<tr>
+<td>2026-10-11</td>
+<td>Gift-card lure image first submitted to VirusTotal</td>
+</tr>
+<tr>
+<td>2026-10-17</td>
+<td>Latest fake-Steam program first seen; <code>basoowin[.]com</code> casino captured</td>
+</tr>
+<tr>
+<td>2026-10-23</td>
+<td><code>marewin[.]com</code> registered; the wallet "receipt" in the lure is dated this day</td>
+</tr>
+<tr>
+<td>~2026-10-26</td>
+<td><code>marewin[.]com</code> suspended by its registrar</td>
+</tr>
+<tr>
+<td>2026-10-28</td>
+<td>Account takeover reported; this investigation begins</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="mitre-attck">MITRE ATT&amp;CK<a class="headerlink" href="#mitre-attck" title="Permanent link">#</a></h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Tactic</th>
+<th>Technique</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resource development</td>
+<td>T1583.001 Acquire domains</td>
+<td>Typosquats and the casino farm</td>
+</tr>
+<tr>
+<td>Resource development</td>
+<td>T1586 Compromise accounts</td>
+<td>Hijacked Steam and Discord accounts used as senders</td>
+</tr>
+<tr>
+<td>Initial access</td>
+<td>T1566.003 Spearphishing via service</td>
+<td>Lures sent over Steam and Discord chat</td>
+</tr>
+<tr>
+<td>Initial access</td>
+<td>T1204.002 User execution: malicious file</td>
+<td>Fake Steam programs and installers</td>
+</tr>
+<tr>
+<td>Defense evasion</td>
+<td>T1036.005 Masquerading: match legitimate name</td>
+<td><code>steam.exe</code>, forged Valve metadata</td>
+</tr>
+<tr>
+<td>Defense evasion</td>
+<td>T1027 Obfuscated files</td>
+<td>bytenode V8 bytecode, obfuscated phishing script</td>
+</tr>
+<tr>
+<td>Defense evasion</td>
+<td>T1027.009 Embedded payloads</td>
+<td>RCDATA 300 second stage</td>
+</tr>
+<tr>
+<td>Credential access</td>
+<td>T1056.002 GUI input capture</td>
+<td>Fake sign-in windows in WebView2 and Electron</td>
+</tr>
+<tr>
+<td>Credential access</td>
+<td>T1539 Steal web session cookie</td>
+<td>Browser storage access in the Electron payload</td>
+</tr>
+<tr>
+<td>Discovery</td>
+<td>T1082 System information discovery</td>
+<td>Machine fingerprint</td>
+</tr>
+<tr>
+<td>Command and control</td>
+<td>T1071.001 Web protocols</td>
+<td>HTTPS to <code>f1shh[.]at</code>, <code>koooolda[.]shop</code></td>
+</tr>
+<tr>
+<td>Exfiltration</td>
+<td>T1041 Exfiltration over C2 channel</td>
+<td>Uploads to <code>fakefake[.]shop</code>, <code>pulse-keys[.]store</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="detection">Detection<a class="headerlink" href="#detection" title="Permanent link">#</a></h2>
+<h3 id="network">Network<a class="headerlink" href="#network" title="Permanent link">#</a></h3>
+<p>Block the domains and IPs in the <a href="#indicators">indicator list</a>. For broader coverage,
+block or alert on new lookalikes of <code>steamcommunity.com</code> and <code>steampowered.com</code>, and on
+any HTTPS to AS214351.</p>
+<h3 id="host">Host<a class="headerlink" href="#host" title="Permanent link">#</a></h3>
+<p>Look for:</p>
+<ul>
+<li>Any <code>steam.exe</code> or <code>Steam.exe</code> outside <code>C:\Program Files (x86)\Steam\</code>, especially
+  under <code>C:\Windows\</code> with a random 5 to 9 character name.</li>
+<li>Unsigned programs that host an Edge WebView2 window, import WinInet and carry a PE
+  file as resource RCDATA 300.</li>
+<li>An Electron app whose <code>resources\app.asar</code> contains <code>package.json</code> with
+  <code>"name": "steam-login-app"</code>, or a <code>main.js</code> that only requires <code>bytenode</code> and a
+  <code>main.jsc</code>.</li>
+<li>NSIS installers around 61 MB with Valve version info that are not signed by Valve.</li>
+<li>Traffic to any numbered subdomain of <code>f1shh[.]at</code>.</li>
+</ul>
+<h3 id="yara">YARA<a class="headerlink" href="#yara" title="Permanent link">#</a></h3>
+<p>CORD's rule for the WebView2 group matches all 8 of its core members and 2 close
+relatives (10 of the 16 programs). The rule for the installer group is still being
+written. Both will be published here as YARA once they pass measurement.</p>
+<h2 id="recovery-and-cleanup">Recovery and cleanup<a class="headerlink" href="#recovery-and-cleanup" title="Permanent link">#</a></h2>
+<p>This section is for anyone whose account sent these lures, and for anyone who scanned
+the QR code, signed in on the fake page, or ran one of the programs. <strong>Steam and Discord
+are both confirmed compromised in this case</strong>, so do all of it.</p>
+<div class="callout bad">
+<p><strong>Use your phone or another clean device for every account step.</strong> If the PC is
+infected, it will steal new passwords as you type them. Do not wait for the PC to be
+cleaned before securing the accounts: until every session is logged out, the attacker
+is still inside.</p>
+</div>
+<h3 id="right-now">Right now<a class="headerlink" href="#right-now" title="Permanent link">#</a></h3>
+<ol>
+<li>Take the affected PC off the network (unplug it or turn off Wi-Fi).</li>
+<li>From another device, warn your contacts on Steam and Discord: your account was
+   hijacked, recent images and links from you are scams, and anyone who scanned the QR
+   code or signed in should follow this guide.</li>
+</ol>
+<h3 id="secure-your-email-first">Secure your email first<a class="headerlink" href="#secure-your-email-first" title="Permanent link">#</a></h3>
+<p>Email resets every other account.</p>
+<ol>
+<li>Sign out of all other sessions.</li>
+<li>Change the password to a new one you have never used. A password manager makes this
+   easy.</li>
+<li>Turn on two-factor sign-in with an authenticator app or a passkey.</li>
+<li>Check the recovery phone number and recovery email.</li>
+<li>Remove any forwarding rules or filters you did not create.</li>
+</ol>
+<h3 id="steam">Steam<a class="headerlink" href="#steam" title="Permanent link">#</a></h3>
+<ol>
+<li>Change the password at store.steampowered.com (Account details).</li>
+<li>Go to <code>store.steampowered.com/twofactor/manage</code> and choose <strong>Deauthorize all other
+   devices</strong>. This ends the attacker's session.</li>
+<li>Make sure the Steam Guard Mobile Authenticator is on. Re-link it if anything about
+   it changed.</li>
+<li><strong>Check the Web API key page</strong> at <code>steamcommunity.com/dev/apikey</code>. If a key exists
+   that you did not create, revoke it. Hijackers register keys to watch and redirect
+   your trade offers, and the key survives a password change.</li>
+<li>Check that the email and phone on the account are still yours.</li>
+<li>Review purchase history, trade history, Community Market listings and inventory.
+   Note anything you did not do.</li>
+<li>Check your Steam Family settings and the device list on the Steam Guard page for
+   anything you did not add.</li>
+<li>Expect a 15-day trade and market hold after these changes. It protects you.</li>
+<li>Open a ticket at help.steampowered.com ("My account was stolen") with dates and what
+   was taken.</li>
+</ol>
+<h3 id="discord">Discord<a class="headerlink" href="#discord" title="Permanent link">#</a></h3>
+<ol>
+<li>Change the password (User Settings → My Account). This also ends existing sessions
+   and invalidates stolen tokens.</li>
+<li>User Settings → Devices → <strong>Log out all known devices</strong>.</li>
+<li>Turn two-factor on, or reset it to a fresh authenticator setup. Store the new backup
+   codes off the PC.</li>
+<li>User Settings → <strong>Authorized Apps</strong>: remove anything you do not recognise.</li>
+<li>Check your email, phone, username, connections and payment methods, and any servers
+   you own (bots added, roles changed, webhooks created).</li>
+<li>Delete the scam messages from your DMs where you can, and report the account
+   takeover at support.discord.com.</li>
+</ol>
+<h3 id="clean-the-pc">Clean the PC<a class="headerlink" href="#clean-the-pc" title="Permanent link">#</a></h3>
+<p>A full reinstall of Windows is the only way to be sure. These programs give a remote
+page read and write access to files, so a scan cannot prove they left nothing behind.</p>
+<ol>
+<li>Back up documents and photos only, not programs, shortcuts or <code>.exe</code> files.</li>
+<li>Make Windows install media from a clean computer with Microsoft's Media Creation
+   Tool.</li>
+<li>Reinstall and format the drive. Reinstall programs from official sources only.</li>
+</ol>
+<p>If you cannot reinstall straight away:</p>
+<ol>
+<li>Boot into Safe Mode with Networking.</li>
+<li>Run full scans with Malwarebytes and the ESET Online Scanner, or a similar pair.</li>
+<li>Look for the files in <a href="#host">Host detection</a>: stray <code>steam.exe</code> copies in
+   <code>C:\Windows\</code>, unexpected WebView2 or Electron apps that pose as Steam, and recently
+   installed apps you do not remember in Settings → Apps.</li>
+<li>Check Startup apps, Task Scheduler and
+   <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code> for entries you do not
+   recognise.</li>
+<li>Plan the reinstall anyway.</li>
+</ol>
+<p>Do not sign in to anything on the PC until it is clean.</p>
+<h3 id="everything-the-browser-remembered">Everything the browser remembered<a class="headerlink" href="#everything-the-browser-remembered" title="Permanent link">#</a></h3>
+<p>Assume every saved password, cookie and autofill entry on that PC was taken.</p>
+<ol>
+<li>Change passwords from a clean device, in this order: email, banking and payment
+   apps, crypto exchanges, other gaming accounts (Epic, Battle.net, Riot, EA,
+   Ubisoft), social media, shopping, then the rest.</li>
+<li>Use "sign out everywhere" where a site offers it, because stolen cookies keep
+   working until the session ends. Google, Microsoft, Apple and most banks have this
+   option.</li>
+<li>Turn on two-factor sign-in everywhere you can.</li>
+<li>If you reused a password anywhere, change it there too.</li>
+</ol>
+<h3 id="crypto-wallets">Crypto wallets<a class="headerlink" href="#crypto-wallets" title="Permanent link">#</a></h3>
+<p>If the PC had wallet extensions (MetaMask, Phantom, Coinbase Wallet) or seed phrases
+stored on it:</p>
+<ol>
+<li>On a clean device, create a new wallet with a new seed phrase.</li>
+<li>Move all funds to it straight away.</li>
+<li>Abandon the old wallet for good, and never import its seed phrase again.</li>
+</ol>
+<h3 id="if-you-sent-money-to-the-casino">If you sent money to the casino<a class="headerlink" href="#if-you-sent-money-to-the-casino" title="Permanent link">#</a></h3>
+<p>The money is almost certainly gone. Report it to your local police and to
+reportfraud.ftc.gov (US) or Action Fraud (UK), with the transaction hashes. Ignore
+anyone who offers to recover it for a fee. That is a second scam aimed at the same
+victims.</p>
+<h3 id="checklist">Checklist<a class="headerlink" href="#checklist" title="Permanent link">#</a></h3>
+<ul class="checklist">
+<li>PC offline</li>
+<li>Contacts warned</li>
+<li>Email: password, sessions, two-factor, recovery details, forwarding rules</li>
+<li>Steam: password, deauthorize devices, Steam Guard, <strong>API key revoked</strong>, trades reviewed, ticket opened</li>
+<li>Discord: password, devices logged out, two-factor, authorized apps cleared, ticket opened</li>
+<li>PC reinstalled (or scanned now and reinstall planned)</li>
+<li>Saved passwords changed, starting with money and email</li>
+<li>Crypto moved to a new wallet</li>
+</ul>
+
+<h2 id="indicators">Indicators<a class="headerlink" href="#indicators" title="Permanent link">#</a></h2>
+<p>All values are defanged. The full lists, with roles, first and last seen dates and
+sources, are in <a href="iocs.csv">iocs.csv</a> and <a href="iocs.json">iocs.json</a>.</p>
+<h3 id="phishing-and-c2-domains">Phishing and C2 domains<a class="headerlink" href="#phishing-and-c2-domains" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>steamcomrnuunity[.]com</code></td>
+<td>Phishing landing page (QR destination)</td>
+</tr>
+<tr>
+<td><code>steamcomrnunuity[.]online</code></td>
+<td>Steam typosquat</td>
+</tr>
+<tr>
+<td><code>staemcommunity[.]com[.]ru</code></td>
+<td>Steam typosquat</td>
+</tr>
+<tr>
+<td><code>steamqowered[.]shop</code></td>
+<td>Steam store typosquat</td>
+</tr>
+<tr>
+<td><code>steamcommunlty[.]site</code></td>
+<td>Steam typosquat (8 subdomains)</td>
+</tr>
+<tr>
+<td><code>gifting-raduga[.]biz</code></td>
+<td>Gift activation phish</td>
+</tr>
+<tr>
+<td><code>rtgift[.]com</code></td>
+<td>Gift-card phish</td>
+</tr>
+<tr>
+<td><code>f1shh[.]at</code> and its numbered subdomains</td>
+<td>Phishing pages and malware C2</td>
+</tr>
+<tr>
+<td><code>8909451279.f1shh[.]at</code></td>
+<td>Phishing page <code>/client</code> and C2 for three samples</td>
+</tr>
+<tr>
+<td><code>koooolda[.]shop</code></td>
+<td>Malware C2</td>
+</tr>
+<tr>
+<td><code>fakefake[.]shop</code></td>
+<td>Exfiltration endpoint (Electron payload)</td>
+</tr>
+<tr>
+<td><code>pulse-keys[.]store</code></td>
+<td>Exfiltration endpoint (Electron payload)</td>
+</tr>
+<tr>
+<td><code>cheatdetector[.]shop</code></td>
+<td>Related to the same server; role unconfirmed</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="urls">URLs<a class="headerlink" href="#urls" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hxxps://steamcomrnuunity[.]com/code/2035922</code></td>
+<td>QR destination in the lure</td>
+</tr>
+<tr>
+<td><code>hxxps://steamcomrnuunity[.]com/code/647829</code></td>
+<td>Lure code</td>
+</tr>
+<tr>
+<td><code>hxxps://steamcomrnuunity[.]com/code/876809</code></td>
+<td>Lure code</td>
+</tr>
+<tr>
+<td><code>hxxps://steamcomrnuunity[.]com/code/3454765444</code></td>
+<td>Lure code</td>
+</tr>
+<tr>
+<td><code>hxxps://8909451279.f1shh[.]at/client</code></td>
+<td>Phishing page loaded by the WebView2 program</td>
+</tr>
+<tr>
+<td><code>hxxps://fakefake[.]shop/3253523</code></td>
+<td>Exfiltration</td>
+</tr>
+<tr>
+<td><code>hxxps://pulse-keys[.]store/6887</code></td>
+<td>Exfiltration</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ip-addresses">IP addresses<a class="headerlink" href="#ip-addresses" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Owner</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>62.60.226.75</code></td>
+<td>FEMO IT Solutions, AS214351</td>
+<td>Phishing host and malware C2</td>
+</tr>
+<tr>
+<td><code>192.162.199.140</code></td>
+<td>FEMO IT Solutions, AS214351</td>
+<td>Phishing host and typosquats</td>
+</tr>
+<tr>
+<td><code>172.86.88.161</code></td>
+<td>RouterHosting / Cloudzy, AS14956</td>
+<td>Casino farm (offline when checked)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="malware-sha-256">Malware (SHA-256)<a class="headerlink" href="#malware-sha-256" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>SHA-256</th>
+<th>Type</th>
+<th>VT detections</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f27af032b01fc6982ff936086eaeeaa6a517a9b3fad74939ee4e50729c9e3b2c</code></td>
+<td>WebView2 fake Steam (analysed)</td>
+<td>40</td>
+</tr>
+<tr>
+<td><code>dd5675e5c0e335ac53c81104ccc4eed58180f566970c083d417662c8e4156e2e</code></td>
+<td>WebView2 fake Steam</td>
+<td>40</td>
+</tr>
+<tr>
+<td><code>5675b9a830e4b89e0ce31f23107467afdd727e38a38f5a72894ad5d4287be755</code></td>
+<td>WebView2 fake Steam</td>
+<td>36</td>
+</tr>
+<tr>
+<td><code>234c7abcc91b42473c00183c12e7dd0f81126344b21973c2ff68d346d589a9ed</code></td>
+<td>WebView2 fake Steam</td>
+<td>34</td>
+</tr>
+<tr>
+<td><code>a8e5ce0d903b179b2a53f0d21c54cbd009590cc6683a4ba5fda32aa33818627a</code></td>
+<td>WebView2 fake Steam</td>
+<td>20</td>
+</tr>
+<tr>
+<td><code>0edcc9061d88c6f0c24ff35d0a2e22387636461db707020d3a70b23cbd523579</code></td>
+<td>WebView2 fake Steam</td>
+<td>19</td>
+</tr>
+<tr>
+<td><code>224538f4d2f58ac89a5939edcfbcafdb5956aa02320cec5aec1e5ce6f1482468</code></td>
+<td>WebView2 fake Steam</td>
+<td>17</td>
+</tr>
+<tr>
+<td><code>b0da0012552f229de3a01d1775fa37a343d69a32bf6ef33b0170e54e13df621c</code></td>
+<td>WebView2 fake Steam</td>
+<td>14</td>
+</tr>
+<tr>
+<td><code>0394a4bbce427fc134363fd805142bc6051a1046042473f7113dbbb43e86ef52</code></td>
+<td>WebView2 fake Steam</td>
+<td>13</td>
+</tr>
+<tr>
+<td><code>0e302546468e0accc4ed98d60aed83246d671acdaf0728d9ac2cfe48c118615b</code></td>
+<td>WebView2 fake Steam</td>
+<td>9</td>
+</tr>
+<tr>
+<td><code>3d2b12f8523f92e0e91f3041e2658b98ee07896c54043922ca73c7c17f19cdff</code></td>
+<td>Fake SteamClient.exe</td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>c86286508d09cd68ff0a38b7db9b6f76fd353a9a009402c9c512a568e439b46b</code></td>
+<td>NSIS + Electron installer (analysed)</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>64465b46cfd9ad484c42b9b313401268ee863dd7b18844aa69db95517fdd4d99</code></td>
+<td>NSIS + Electron installer</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>6b3bb3be9661c3db2227a03f6ac528e3518f5e9ede0ce2aece9ba548ba40e971</code></td>
+<td>NSIS + Electron installer</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>a0eb8249298c1119fa1ba389d41d61e32f98f8422e61f9cf360ff7e918f4f303</code></td>
+<td>NSIS + Electron installer</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>b136e43ba624c154d60a52c993963096ddb431e67a120bb993dcf8cf8d291b9e</code></td>
+<td>NSIS + Electron installer</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>6942177c4eae47027e058bdadec8d82afb4826ea4e459ac0e5bc938038f417cc</code></td>
+<td><code>app.asar</code> from the installer</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td><code>3bf8b47b12d4630495baf611033c80ac6d31c27117b8a0409048d52b8e6260f7</code></td>
+<td><code>main.jsc</code> bytecode payload</td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="lure-images-sha-256">Lure images (SHA-256)<a class="headerlink" href="#lure-images-sha-256" title="Permanent link">#</a></h3>
+<p>The Discord images change hash with every copy, so these four hashes identify only our
+copies.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>SHA-256</th>
+<th>Image</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>8357109d570f6f7d477ba4cbd56298b432764c756dcbde8b8e9157cd64065828</code></td>
+<td>Steam gift-card QR lure</td>
+</tr>
+<tr>
+<td><code>e3758d3b1b5f748867c75e3bd4002adf5d4cba7fe0594933650116b77b7f0931</code></td>
+<td>Fake MrBeast post</td>
+</tr>
+<tr>
+<td><code>0b2996ad895ebbb6b130133068ddf578f16dab98a8da2ab6c676f90db4b2215e</code></td>
+<td>Casino bonus page</td>
+</tr>
+<tr>
+<td><code>80238cf2e142c90ed6c5ca9da2e4ce97a515fc436d116136027120ca8b3b9a6d</code></td>
+<td>Fake withdrawal</td>
+</tr>
+<tr>
+<td><code>3a69aae43bd9c990a04a2e3f0e780de58f840fc8ec3e65cd2b86581dd09a5027</code></td>
+<td>Fake wallet receipt</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="other">Other<a class="headerlink" href="#other" title="Permanent link">#</a></h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Promo code</td>
+<td><code>CASH</code></td>
+</tr>
+<tr>
+<td>Scam persona</td>
+<td><code>honestly5434</code></td>
+</tr>
+<tr>
+<td>Fake project name</td>
+<td>"Vyro"</td>
+</tr>
+<tr>
+<td>Affiliate IDs</td>
+<td><code>626</code>, <code>1207</code></td>
+</tr>
+<tr>
+<td>Google site verification</td>
+<td><code>me9ZlrZsMXh3rGKrjmph4_LMHQaPgsy3QXb3b_buz_M</code></td>
+</tr>
+<tr>
+<td>Favicon mmh3</td>
+<td><code>1775797633</code></td>
+</tr>
+<tr>
+<td>JARM</td>
+<td><code>21d19d00021d21d00042d43d00000091f9827a8676a9d9f27d421962a09b5d</code></td>
+</tr>
+<tr>
+<td>Electron package name</td>
+<td><code>steam-login-app</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="how-we-did-this">How we did this<a class="headerlink" href="#how-we-did-this" title="Permanent link">#</a></h2>
+<ul>
+<li><strong>Images.</strong> Parsed byte by byte, checked for embedded payloads and decoded the QR
+  code. Re-encoded for this page with metadata removed and the QR code pixelated.</li>
+<li><strong>Infrastructure.</strong> WHOIS and RDAP, passive DNS, certificate transparency,
+  urlscan.io, VirusTotal and ThreatFox.</li>
+<li><strong>Live sites.</strong> Fetched over Tor, read-only (GET and HEAD). We never submitted a
+  form, signed in, registered or ran the sites' scripts.</li>
+<li><strong>Malware.</strong> The 16 programs were downloaded into an isolated analysis VM and
+  analysed statically by CORD's research pipeline: disassembly, call graphs, resource
+  and archive extraction, string recovery. Nothing was executed.</li>
+</ul>
+<h3 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">#</a></h3>
+<ul>
+<li>We did not see what the fake sign-in box sends, because we did not run its script.</li>
+<li>The second-stage program inside the WebView2 samples, and four of the five
+  installers, were analysed only partly.</li>
+<li>The casino's backend and deposit wallets were offline or absent from archived pages.</li>
+<li>How the account owner's PC was first infected is unknown without access to it.</li>
+</ul></article>
+</div>
+</main>
+<footer class="wrap">CORD &middot; Cluster, Optimize, Research, Detection. Defensive threat research on
+malware and scams already in circulation. Indicators are defanged; never visit them from a
+normal browser.</footer>
+</body>
+</html>

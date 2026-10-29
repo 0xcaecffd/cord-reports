@@ -1,0 +1,52 @@
+/* CORD brand. Zinc neutrals and the cool sweep: the four parts, in CORD order, are neighbouring hues on one
+   teal → violet gradient (cluster teal, optimize blue, research indigo, detection violet). Research (this repo's
+   reports) drives --accent.
+   Token contract (every brand defines the same names): see render/brand/README.md.
+   --part-*: each CORD part's accent, text-safe on --surface in the current theme (4.5:1 or more).
+   --part-*-mark: the mid-tone used in logos, 3:1 or more on both white and near-black, so one SVG works on both.
+   --brand-rule: the sweep itself, for the report's hero rule and header line (cord only; other brands omit it). */
+:root{
+  --part-cluster:#0b7a6c;  --part-optimize:#136d99;  --part-research:#3f46d6;  --part-detection:#6f3fe0;
+  --part-cluster-mark:#0f9d8a; --part-optimize-mark:#1a8fc4; --part-research-mark:#5b63f5; --part-detection-mark:#8b5cf6;
+  --brand-rule:linear-gradient(90deg,var(--part-cluster-mark),var(--part-optimize-mark),var(--part-research-mark),var(--part-detection-mark));
+
+  --brand-1:#5b63f5;   /* research indigo */
+  --brand-2:#09090b;   /* ink */
+  --brand-3:#71717a;   /* zinc */
+  --logo-accent:#5b63f5;
+
+  --bg:#fafafa; --surface:#ffffff; --surface-2:#f4f4f5; --fg:#09090b; --muted:#52525b; --line:#e4e4e7;
+  --accent:#3f46d6; --accent-fg:#ffffff; --accent-soft:#eceeff; --link:#3a40c9; --focus:#4f57ee;
+  --code-bg:#f6f6f7; --code-fg:#18181b;
+  --syn-kw:#7c2fd8; --syn-ty:#1d4ed8; --syn-str:#166534; --syn-num:#a14a06; --syn-com:#62626b; --syn-fn:#3a40c9;
+  --cg-root:#dbe7fd; --cg-target:#dfe1ff; --cg-mid:#f0f0f2; --cg-edge:#86868f; --cg-stroke:#86868f; --cg-text:#09090b;
+  --hit:#fef3c7; --hit-bar:#b45309;
+  --ok:#15803d; --warn:#a15c07; --bad:#d4261f;
+
+  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,"Cascadia Mono","Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --display-weight:700; --display-tracking:-0.025em; --radius:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --part-cluster:#3cc9b4;  --part-optimize:#5cbcec;  --part-research:#8f96ff;  --part-detection:#b49cff;
+  --logo-accent:#5b63f5;
+  --bg:#09090b; --surface:#111114; --surface-2:#18181c; --fg:#ededef; --muted:#a1a1aa; --line:#27272a;
+  --accent:#8f96ff; --accent-fg:#0a0b24; --accent-soft:#1b1d3d; --link:#a3a9ff; --focus:#a3a9ff;
+  --code-bg:#0e0e11; --code-fg:#e4e4e7;
+  --syn-kw:#c9a2ff; --syn-ty:#7fb2ff; --syn-str:#86d99a; --syn-num:#f5b561; --syn-com:#8a8a96; --syn-fn:#a3a9ff;
+  --cg-root:#182848; --cg-target:#23275a; --cg-mid:#1c1c21; --cg-edge:#71717c; --cg-stroke:#5f5f6b; --cg-text:#ededef;
+  --hit:#3a2a08; --hit-bar:#f5b561;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#ff7b72;
+}}
+:root[data-theme="dark"]{
+  --part-cluster:#3cc9b4;  --part-optimize:#5cbcec;  --part-research:#8f96ff;  --part-detection:#b49cff;
+  --logo-accent:#5b63f5;
+  --bg:#09090b; --surface:#111114; --surface-2:#18181c; --fg:#ededef; --muted:#a1a1aa; --line:#27272a;
+  --accent:#8f96ff; --accent-fg:#0a0b24; --accent-soft:#1b1d3d; --link:#a3a9ff; --focus:#a3a9ff;
+  --code-bg:#0e0e11; --code-fg:#e4e4e7;
+  --syn-kw:#c9a2ff; --syn-ty:#7fb2ff; --syn-str:#86d99a; --syn-num:#f5b561; --syn-com:#8a8a96; --syn-fn:#a3a9ff;
+  --cg-root:#182848; --cg-target:#23275a; --cg-mid:#1c1c21; --cg-edge:#71717c; --cg-stroke:#5f5f6b; --cg-text:#ededef;
+  --hit:#3a2a08; --hit-bar:#f5b561;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#ff7b72;
+}

@@ -1,0 +1,329 @@
+{
+ "report": "2026-10-steam-lure",
+ "indicators": [
+  {
+   "type": "domain",
+   "value": "steamcomrnuunity.com",
+   "role": "Phishing landing page (QR destination)",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steamcomrnunuity.online",
+   "role": "Steam typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "staemcommunity.com.ru",
+   "role": "Steam typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steamqowered.shop",
+   "role": "Steam store typosquat",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "steamcommunlty.site",
+   "role": "Steam typosquat (8 subdomains)",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "gifting-raduga.biz",
+   "role": "Gift activation phish",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "rtgift.com",
+   "role": "Gift-card phish",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "f1shh.at",
+   "role": "Phishing pages and malware C2",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "8909451279.f1shh.at",
+   "role": "Phishing page `/client` and C2 for three samples",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "koooolda.shop",
+   "role": "Malware C2",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "fakefake.shop",
+   "role": "Exfiltration endpoint (Electron payload)",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "pulse-keys.store",
+   "role": "Exfiltration endpoint (Electron payload)",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "domain",
+   "value": "cheatdetector.shop",
+   "role": "Related to the same server; role unconfirmed",
+   "category": "Phishing and C2 domains"
+  },
+  {
+   "type": "url",
+   "value": "https://steamcomrnuunity.com/code/2035922",
+   "role": "QR destination in the lure",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://steamcomrnuunity.com/code/647829",
+   "role": "Lure code",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://steamcomrnuunity.com/code/876809",
+   "role": "Lure code",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://steamcomrnuunity.com/code/3454765444",
+   "role": "Lure code",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://8909451279.f1shh.at/client",
+   "role": "Phishing page loaded by the WebView2 program",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://fakefake.shop/3253523",
+   "role": "Exfiltration",
+   "category": "URLs"
+  },
+  {
+   "type": "url",
+   "value": "https://pulse-keys.store/6887",
+   "role": "Exfiltration",
+   "category": "URLs"
+  },
+  {
+   "type": "ip",
+   "value": "62.60.226.75",
+   "role": "FEMO IT Solutions, AS214351 / Phishing host and malware C2",
+   "category": "IP addresses"
+  },
+  {
+   "type": "ip",
+   "value": "192.162.199.140",
+   "role": "FEMO IT Solutions, AS214351 / Phishing host and typosquats",
+   "category": "IP addresses"
+  },
+  {
+   "type": "ip",
+   "value": "172.86.88.161",
+   "role": "RouterHosting / Cloudzy, AS14956 / Casino farm (offline when checked)",
+   "category": "IP addresses"
+  },
+  {
+   "type": "sha256",
+   "value": "f27af032b01fc6982ff936086eaeeaa6a517a9b3fad74939ee4e50729c9e3b2c",
+   "role": "WebView2 fake Steam (analysed) / 40",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "dd5675e5c0e335ac53c81104ccc4eed58180f566970c083d417662c8e4156e2e",
+   "role": "WebView2 fake Steam / 40",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "5675b9a830e4b89e0ce31f23107467afdd727e38a38f5a72894ad5d4287be755",
+   "role": "WebView2 fake Steam / 36",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "234c7abcc91b42473c00183c12e7dd0f81126344b21973c2ff68d346d589a9ed",
+   "role": "WebView2 fake Steam / 34",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "a8e5ce0d903b179b2a53f0d21c54cbd009590cc6683a4ba5fda32aa33818627a",
+   "role": "WebView2 fake Steam / 20",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "0edcc9061d88c6f0c24ff35d0a2e22387636461db707020d3a70b23cbd523579",
+   "role": "WebView2 fake Steam / 19",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "224538f4d2f58ac89a5939edcfbcafdb5956aa02320cec5aec1e5ce6f1482468",
+   "role": "WebView2 fake Steam / 17",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "b0da0012552f229de3a01d1775fa37a343d69a32bf6ef33b0170e54e13df621c",
+   "role": "WebView2 fake Steam / 14",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "0394a4bbce427fc134363fd805142bc6051a1046042473f7113dbbb43e86ef52",
+   "role": "WebView2 fake Steam / 13",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "0e302546468e0accc4ed98d60aed83246d671acdaf0728d9ac2cfe48c118615b",
+   "role": "WebView2 fake Steam / 9",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "3d2b12f8523f92e0e91f3041e2658b98ee07896c54043922ca73c7c17f19cdff",
+   "role": "Fake SteamClient.exe / 3",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "c86286508d09cd68ff0a38b7db9b6f76fd353a9a009402c9c512a568e439b46b",
+   "role": "NSIS + Electron installer (analysed) / 0",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "64465b46cfd9ad484c42b9b313401268ee863dd7b18844aa69db95517fdd4d99",
+   "role": "NSIS + Electron installer / 2",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "6b3bb3be9661c3db2227a03f6ac528e3518f5e9ede0ce2aece9ba548ba40e971",
+   "role": "NSIS + Electron installer / 0",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "a0eb8249298c1119fa1ba389d41d61e32f98f8422e61f9cf360ff7e918f4f303",
+   "role": "NSIS + Electron installer / 0",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "b136e43ba624c154d60a52c993963096ddb431e67a120bb993dcf8cf8d291b9e",
+   "role": "NSIS + Electron installer / 0",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "6942177c4eae47027e058bdadec8d82afb4826ea4e459ac0e5bc938038f417cc",
+   "role": "`app.asar` from the installer / n/a",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "3bf8b47b12d4630495baf611033c80ac6d31c27117b8a0409048d52b8e6260f7",
+   "role": "`main.jsc` bytecode payload / n/a",
+   "category": "Malware (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "8357109d570f6f7d477ba4cbd56298b432764c756dcbde8b8e9157cd64065828",
+   "role": "Steam gift-card QR lure",
+   "category": "Lure images (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "e3758d3b1b5f748867c75e3bd4002adf5d4cba7fe0594933650116b77b7f0931",
+   "role": "Fake MrBeast post",
+   "category": "Lure images (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "0b2996ad895ebbb6b130133068ddf578f16dab98a8da2ab6c676f90db4b2215e",
+   "role": "Casino bonus page",
+   "category": "Lure images (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "80238cf2e142c90ed6c5ca9da2e4ce97a515fc436d116136027120ca8b3b9a6d",
+   "role": "Fake withdrawal",
+   "category": "Lure images (SHA-256)"
+  },
+  {
+   "type": "sha256",
+   "value": "3a69aae43bd9c990a04a2e3f0e780de58f840fc8ec3e65cd2b86581dd09a5027",
+   "role": "Fake wallet receipt",
+   "category": "Lure images (SHA-256)"
+  },
+  {
+   "type": "promo code",
+   "value": "CASH",
+   "role": "Promo code",
+   "category": "Other"
+  },
+  {
+   "type": "scam persona",
+   "value": "honestly5434",
+   "role": "Scam persona",
+   "category": "Other"
+  },
+  {
+   "type": "fake project name",
+   "value": "\"Vyro\"",
+   "role": "Fake project name",
+   "category": "Other"
+  },
+  {
+   "type": "affiliate ids",
+   "value": "626, 1207",
+   "role": "Affiliate IDs",
+   "category": "Other"
+  },
+  {
+   "type": "google site verification",
+   "value": "me9ZlrZsMXh3rGKrjmph4_LMHQaPgsy3QXb3b_buz_M",
+   "role": "Google site verification",
+   "category": "Other"
+  },
+  {
+   "type": "favicon mmh3",
+   "value": "1775797633",
+   "role": "Favicon mmh3",
+   "category": "Other"
+  },
+  {
+   "type": "jarm",
+   "value": "21d19d00021d21d00042d43d00000091f9827a8676a9d9f27d421962a09b5d",
+   "role": "JARM",
+   "category": "Other"
+  },
+  {
+   "type": "electron package name",
+   "value": "steam-login-app",
+   "role": "Electron package name",
+   "category": "Other"
+  }
+ ]
+}
